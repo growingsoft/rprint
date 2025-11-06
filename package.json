@@ -1,0 +1,32 @@
+{
+  "name": "rprint",
+  "version": "1.0.0",
+  "description": "Remote printing system with Ubuntu intermediary server",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "install-all": "npm install && cd packages/server && npm install && cd ../windows-service && npm install && cd ../client && npm install",
+    "server": "cd packages/server && npm start",
+    "server:dev": "cd packages/server && npm run dev",
+    "windows-service": "cd packages/windows-service && npm start",
+    "windows-service:install": "cd packages/windows-service && npm run install-service",
+    "windows-service:uninstall": "cd packages/windows-service && npm run uninstall-service",
+    "client": "cd packages/client && npm start",
+    "client:dev": "cd packages/client && npm run dev",
+    "client:build": "cd packages/client && npm run build",
+    "test": "npm run test --workspaces",
+    "lint": "eslint packages/*/src --ext .ts,.tsx"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@typescript-eslint/eslint-plugin": "^6.13.0",
+    "@typescript-eslint/parser": "^6.13.0",
+    "eslint": "^8.54.0",
+    "typescript": "^5.3.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
