@@ -13,6 +13,7 @@ import authRoutes from './routes/auth';
 import printerRoutes from './routes/printers';
 import jobRoutes from './routes/jobs';
 import workerRoutes from './routes/workers';
+import downloadRoutes from './routes/downloads';
 
 dotenv.config();
 
@@ -43,6 +44,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/printers', printerRoutes);
 app.use('/api/jobs', jobRoutes);
 app.use('/api/workers', workerRoutes);
+app.use('/api/downloads', downloadRoutes);
 
 // Health check
 app.get('/health', (_req, res) => {

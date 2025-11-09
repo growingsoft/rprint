@@ -155,6 +155,17 @@ class ApiService {
     const clientStr = localStorage.getItem('client');
     return clientStr ? JSON.parse(clientStr) : null;
   }
+
+  // Download endpoints
+  async getDownloadInfo(): Promise<any> {
+    const response = await this.client.get('/downloads/info');
+    return response.data;
+  }
+
+  async registerWorkerAndDownload(name: string): Promise<any> {
+    const response = await this.client.post('/downloads/register-and-download', { name });
+    return response.data;
+  }
 }
 
 export const api = new ApiService();

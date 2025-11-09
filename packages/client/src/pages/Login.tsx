@@ -145,6 +145,16 @@ export const Login: React.FC = () => {
             {isLogin ? 'Register' : 'Login'}
           </a>
         </p>
+
+        <p style={{ textAlign: 'center', marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #eee' }}>
+          Need to install the Windows service or desktop client?{' '}
+          <a
+            href="/downloads"
+            style={{ color: '#27ae60', textDecoration: 'none', fontWeight: '500' }}
+          >
+            Download Installers
+          </a>
+        </p>
       </div>
     </div>
   );

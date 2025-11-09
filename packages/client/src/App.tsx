@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
+import { Downloads } from './pages/Downloads';
 import { api } from './services/api';
 import './styles/App.css';
 
@@ -14,6 +15,7 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/downloads" element={<Downloads />} />
         <Route
           path="/"
           element={
