@@ -61,13 +61,9 @@ export const Downloads: React.FC = () => {
   };
 
   const handleDownload = (url: string, filename: string) => {
-    // Create a temporary link to trigger download
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    // Open the download URL in a new window/tab
+    // The browser will automatically handle the file download
+    window.open(url, '_blank');
   };
 
   if (loading) {

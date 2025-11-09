@@ -94,8 +94,7 @@ export class DownloadController {
   // Get download information
   static async getDownloadInfo(req: Request, res: Response) {
     try {
-      const serverUrl = `${req.protocol}://${req.get('host')}`;
-
+      // Use relative URLs to work properly with proxy
       res.json({
         downloads: [
           {
@@ -104,7 +103,7 @@ export class DownloadController {
             description: 'Install on your Windows 11 machine to enable remote printing',
             platform: 'Windows 11',
             size: 'Dynamic (excludes node_modules)',
-            downloadUrl: `${serverUrl}/api/downloads/windows-service`,
+            downloadUrl: '/api/downloads/windows-service',
             instructions: 'Extract the ZIP file, then run INSTALL.bat as Administrator'
           },
           {
@@ -113,7 +112,7 @@ export class DownloadController {
             description: 'Cross-platform desktop application for submitting print jobs',
             platform: 'Windows, macOS, Linux',
             size: 'Dynamic (excludes node_modules)',
-            downloadUrl: `${serverUrl}/api/downloads/electron-client`,
+            downloadUrl: '/api/downloads/electron-client',
             instructions: 'Extract the ZIP file, run npm install, then npm run build'
           }
         ],
@@ -154,7 +153,10 @@ export class DownloadController {
       const { WorkerModel } = await import('../models/WorkerModel');
       const worker = await WorkerModel.create(name);
 
-      const serverUrl = `${req.protocol}://${req.get('host')}`;
+      // Detect the actual server URL (handle proxy)
+      const protocol = req.get('x-forwarded-proto') || req.protocol;
+      const host = req.get('x-forwarded-host') || req.get('host');
+      const serverUrl = `${protocol}://${host}`;
 
       res.json({
         worker: {
@@ -162,7 +164,7 @@ export class DownloadController {
           name: worker.name,
           apiKey: worker.apiKey
         },
-        downloadUrl: `${serverUrl}/api/downloads/windows-service`,
+        downloadUrl: '/api/downloads/windows-service',
         setupInstructions: [
           '1. Download the Windows service using the link above',
           '2. Extract the ZIP file to your Windows 11 machine',
