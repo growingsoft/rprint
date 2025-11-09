@@ -30,11 +30,16 @@ SQLite database with tables:
 - `printers` - Registered printers with capabilities
 - `print_jobs` - Print job queue with status tracking
 
+## Monorepo Structure
+
+This is an npm workspaces monorepo with three packages. Root-level `npm install` installs dependencies for all packages. Each package can be developed independently.
+
 ## Development Commands
 
 ### Root Level
 ```bash
-npm run install-all     # Install dependencies for all packages
+npm install             # Install dependencies for all packages (uses workspaces)
+npm run install-all     # Alternative: install each package separately
 npm run server:dev      # Run Ubuntu server in development mode
 npm run windows-service # Run Windows service (requires Windows)
 npm run client:dev      # Run Electron client in development mode
@@ -44,10 +49,12 @@ npm run lint            # Lint all TypeScript code
 
 ### Ubuntu Server (packages/server)
 ```bash
-npm run dev             # Run with ts-node and hot reload
-npm run build           # Compile TypeScript to dist/
-npm start               # Run compiled server
-npm test                # Run Jest tests
+npm run dev                # Run with ts-node and hot reload
+npm run build              # Compile TypeScript to dist/
+npm start                  # Run compiled server
+npm test                   # Run Jest tests
+npm run migration:create   # Create new database migration
+npm run migration:run      # Run pending migrations
 
 # Environment variables (see .env.example)
 PORT=3000
@@ -55,6 +62,8 @@ JWT_SECRET=your-secret-key
 DB_PATH=./data/rprint.db
 UPLOAD_DIR=./uploads
 ```
+
+**Note**: Database schema is automatically created on first run. SQLite database file and uploads directory are created if they don't exist.
 
 ### Windows Service (packages/windows-service)
 ```bash
@@ -72,12 +81,17 @@ POLL_INTERVAL=5000  # milliseconds
 
 ### Electron Client (packages/client)
 ```bash
-npm run dev           # Run in development mode with hot reload
+npm run dev           # Run in development mode with hot reload (Vite + Electron)
+npm run dev:vite      # Run only Vite dev server
+npm run dev:electron  # Run only Electron (waits for Vite)
 npm run build         # Build for production
-npm run build:win     # Build Windows installer
+npm run build:win     # Build Windows installer (NSIS)
 npm run build:mac     # Build macOS DMG
 npm run build:linux   # Build Linux AppImage
+npm test              # Run Jest tests
 ```
+
+**Structure**: Client uses Vite for the React frontend (port 5173) and Electron for desktop features. The `electron/` directory contains main process code (main.ts, preload.ts) while `src/` contains the React renderer process.
 
 ## Key Implementation Details
 
@@ -120,6 +134,13 @@ The Electron client uses IPC to access the file system securely:
 - `window.electronAPI.readFile(path)` - Reads file as ArrayBuffer
 
 Files are converted to Blob/File objects and uploaded via FormData.
+
+**Client Architecture**:
+- **Main Process** (`electron/main.ts`) - Electron window management, IPC handlers
+- **Preload Script** (`electron/preload.ts`) - Exposes safe IPC methods to renderer
+- **Renderer Process** (`src/`) - React app with Zustand for state management
+- **Pages**: Login.tsx, Dashboard.tsx
+- **Services**: API client for server communication
 
 ## Common Development Tasks
 
@@ -164,3 +185,31 @@ Max file size: 10MB (configurable via `MAX_FILE_SIZE` env var)
 - Print job files are automatically deleted after completion/failure
 - Client stores auth token and server URL in localStorage
 - Rate limiting is enabled on server (100 requests per 15 minutes per IP)
+- Server automatically creates database and required directories on startup
+- PowerShell execution policy must allow scripts on Windows for printer detection
+
+## Code Organization
+
+**Server** (`packages/server/src/`):
+- `controllers/` - Request handlers (AuthController, PrintJobController, PrinterController, WorkerController)
+- `routes/` - Express route definitions (auth.ts, jobs.ts, printers.ts, workers.ts)
+- `models/` - Database access layer (ClientModel, PrintJobModel, PrinterModel, WorkerModel)
+- `middleware/` - Auth middleware (JWT/API key) and file upload handling (multer)
+- `database/` - Schema definition and database initialization
+- `types/` - Shared TypeScript interfaces
+- `utils/` - Helper functions
+
+**Windows Service** (`packages/windows-service/src/`):
+- `services/` - Core business logic (ApiClient, PrintService)
+- `utils/` - Printer detection and utilities (printer-utils.ts, logger.ts)
+- `types/` - TypeScript interfaces
+- `index.ts` - Main service loop
+- `install-service.ts` / `uninstall-service.ts` - Windows service installation scripts
+
+**Client** (`packages/client/`):
+- `electron/` - Electron main process and preload scripts
+- `src/pages/` - React page components
+- `src/services/` - API client for server communication
+- `src/store/` - Zustand state management
+- `src/types/` - TypeScript interfaces
+- `src/styles/` - CSS styles

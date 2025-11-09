@@ -6,7 +6,18 @@ export default defineConfig({
   plugins: [react()],
   base: './',
   server: {
-    port: 5173
+    port: 5173,
+    host: '0.0.0.0',
+    strictPort: true,
+    allowedHosts: [
+      'growingsoft.net',
+      'www.growingsoft.net',
+      '.growingsoft.net' // Allow all subdomains
+    ],
+    hmr: {
+      protocol: 'wss',
+      host: 'growingsoft.net'
+    }
   },
   build: {
     outDir: 'dist/renderer',

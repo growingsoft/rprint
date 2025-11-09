@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { useStore } from '../store/useStore';
@@ -9,8 +9,13 @@ export const Login: React.FC = () => {
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
+
+  // Auto-detect if running in production (through proxy) or development
+  const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+  const defaultServerUrl = isProduction ? window.location.origin : 'http://localhost:3001';
+
   const [serverUrl, setServerUrl] = useState(
-    localStorage.getItem('serverUrl') || 'http://localhost:3000'
+    localStorage.getItem('serverUrl') || defaultServerUrl
   );
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -18,13 +23,29 @@ export const Login: React.FC = () => {
   const navigate = useNavigate();
   const { setClient } = useStore();
 
+  // Clean up old localStorage values in production
+  useEffect(() => {
+    if (isProduction) {
+      const storedUrl = localStorage.getItem('serverUrl');
+      // Remove localhost URLs from localStorage when in production
+      if (storedUrl && (storedUrl.includes('localhost') || storedUrl.includes('127.0.0.1'))) {
+        localStorage.removeItem('serverUrl');
+        setServerUrl(defaultServerUrl);
+      }
+    }
+  }, [isProduction, defaultServerUrl]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
-      api.setServerUrl(serverUrl);
+      // Only set server URL in development mode
+      // In production, we use the auto-detected URL from the API service
+      if (!isProduction) {
+        api.setServerUrl(serverUrl);
+      }
 
       let response;
       if (isLogin) {
@@ -50,15 +71,17 @@ export const Login: React.FC = () => {
         {error && <div className="error">{error}</div>}
 
         <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label>Server URL</label>
-            <input
-              type="url"
-              value={serverUrl}
-              onChange={(e) => setServerUrl(e.target.value)}
-              required
-            />
-          </div>
+          {!isProduction && (
+            <div className="form-group">
+              <label>Server URL</label>
+              <input
+                type="url"
+                value={serverUrl}
+                onChange={(e) => setServerUrl(e.target.value)}
+                required
+              />
+            </div>
+          )}
 
           <div className="form-group">
             <label>Username</label>

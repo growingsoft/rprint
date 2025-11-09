@@ -6,8 +6,32 @@ class ApiService {
   private token: string | null = null;
 
   constructor() {
+    // Auto-detect server URL based on environment
+    const getDefaultServerUrl = () => {
+      const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+      const stored = localStorage.getItem('serverUrl');
+
+      // In production, ignore localhost URLs from localStorage
+      if (isProduction) {
+        if (stored && (stored.includes('localhost') || stored.includes('127.0.0.1'))) {
+          localStorage.removeItem('serverUrl');
+          return '/api';
+        }
+        return stored ? `${stored}/api` : '/api';
+      }
+
+      // Development mode
+      if (stored && !stored.includes('localhost') && !stored.includes('127.0.0.1')) {
+        // Don't use production URLs in development
+        localStorage.removeItem('serverUrl');
+        return 'http://localhost:3001/api';
+      }
+
+      return stored ? (stored.endsWith('/api') ? stored : `${stored}/api`) : 'http://localhost:3001/api';
+    };
+
     this.client = axios.create({
-      baseURL: localStorage.getItem('serverUrl') || 'http://localhost:3000/api',
+      baseURL: getDefaultServerUrl(),
       timeout: 30000
     });
 

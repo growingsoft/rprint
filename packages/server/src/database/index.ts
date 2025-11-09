@@ -27,26 +27,43 @@ export class Database {
   async initialize(): Promise<void> {
     if (!this.db) throw new Error('Database not connected');
 
-    const run = promisify(this.db.run.bind(this.db));
-    await run(SCHEMA_SQL);
+    // Use exec() instead of run() to execute multiple SQL statements
+    return new Promise((resolve, reject) => {
+      this.db!.exec(SCHEMA_SQL, (err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
   }
 
   async run(sql: string, params: any[] = []): Promise<void> {
     if (!this.db) throw new Error('Database not connected');
-    const run = promisify(this.db.run.bind(this.db));
-    await run(sql, params);
+    return new Promise((resolve, reject) => {
+      this.db!.run(sql, params, (err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
   }
 
   async get<T>(sql: string, params: any[] = []): Promise<T | undefined> {
     if (!this.db) throw new Error('Database not connected');
-    const get = promisify(this.db.get.bind(this.db));
-    return await get(sql, params) as T | undefined;
+    return new Promise((resolve, reject) => {
+      this.db!.get(sql, params, (err, row) => {
+        if (err) reject(err);
+        else resolve(row as T | undefined);
+      });
+    });
   }
 
   async all<T>(sql: string, params: any[] = []): Promise<T[]> {
     if (!this.db) throw new Error('Database not connected');
-    const all = promisify(this.db.all.bind(this.db));
-    return await all(sql, params) as T[];
+    return new Promise((resolve, reject) => {
+      this.db!.all(sql, params, (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows as T[]);
+      });
+    });
   }
 
   async close(): Promise<void> {
