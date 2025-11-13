@@ -122,7 +122,13 @@ export const Downloads: React.FC = () => {
                 <p><strong>Worker Name:</strong> {workerInfo.worker.name}</p>
                 <p><strong>Worker ID:</strong> <code>{workerInfo.worker.id}</code></p>
                 <p><strong>API Key:</strong> <code>{workerInfo.worker.apiKey}</code></p>
-                <small>⚠️ Save these credentials! You'll need the API key for installation.</small>
+                <div style={{ marginTop: '1rem', padding: '1rem', background: '#d4edda', borderRadius: '4px', border: '1px solid #c3e6cb' }}>
+                  <strong style={{ color: '#155724' }}>✓ Pre-configured!</strong>
+                  <p style={{ margin: '0.5rem 0 0 0', color: '#155724', fontSize: '0.9rem' }}>
+                    The download below includes a .env file with these credentials already set up.
+                    Just extract and run INSTALL.bat!
+                  </p>
+                </div>
               </div>
 
               <button

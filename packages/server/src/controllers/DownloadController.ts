@@ -13,6 +13,9 @@ export class DownloadController {
         return res.status(404).json({ error: 'Windows service files not found' });
       }
 
+      // Check if this is a configured download (with credentials)
+      const { workerId, apiKey, workerName, serverUrl } = req.query;
+
       // Set headers for download
       res.setHeader('Content-Type', 'application/zip');
       res.setHeader('Content-Disposition', 'attachment; filename="rprint-windows-service.zip"');
@@ -40,6 +43,18 @@ export class DownloadController {
           '.git/**'
         ]
       });
+
+      // If credentials provided, add pre-configured .env file
+      if (apiKey && workerName && serverUrl) {
+        const envContent = `SERVER_URL=${serverUrl}
+API_KEY=${apiKey}
+WORKER_NAME=${workerName}
+POLL_INTERVAL=5000
+LOG_LEVEL=info
+`;
+        archive.append(envContent, { name: '.env' });
+        console.log(`Created .env for worker: ${workerName}`);
+      }
 
       await archive.finalize();
     } catch (error: any) {
@@ -158,21 +173,23 @@ export class DownloadController {
       const host = req.get('x-forwarded-host') || req.get('host');
       const serverUrl = `${protocol}://${host}`;
 
+      // Create download URL with pre-configured credentials
+      const downloadUrl = `/api/downloads/windows-service?workerId=${encodeURIComponent(worker.id)}&apiKey=${encodeURIComponent(worker.apiKey)}&workerName=${encodeURIComponent(worker.name)}&serverUrl=${encodeURIComponent(serverUrl)}`;
+
       res.json({
         worker: {
           id: worker.id,
           name: worker.name,
           apiKey: worker.apiKey
         },
-        downloadUrl: '/api/downloads/windows-service',
+        downloadUrl: downloadUrl,
         setupInstructions: [
-          '1. Download the Windows service using the link above',
+          '1. Download the Windows service using the link above (pre-configured with your credentials)',
           '2. Extract the ZIP file to your Windows 11 machine',
-          '3. Create a .env file with your worker credentials',
-          `4. Add this to .env: API_KEY=${worker.apiKey}`,
-          `5. Add this to .env: SERVER_URL=${serverUrl}`,
-          '6. Run INSTALL.bat as Administrator',
-          '7. Your printers will sync automatically'
+          '3. The .env file is already included with your API key and server URL',
+          '4. Run INSTALL.bat as Administrator',
+          '5. The installer will skip configuration (already done!)',
+          '6. Your printers will sync automatically'
         ]
       });
     } catch (error: any) {
