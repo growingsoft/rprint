@@ -109,8 +109,24 @@ LOG_LEVEL=info
   // Get download information
   static async getDownloadInfo(req: Request, res: Response) {
     try {
+      // Detect the actual server URL (handle proxy)
+      const protocol = req.get('x-forwarded-proto') || req.protocol;
+      const host = req.get('x-forwarded-host') || req.get('host');
+      const serverUrl = `${protocol}://${host}`;
+
       // Use relative URLs to work properly with proxy
       res.json({
+        webClient: {
+          name: 'Web Client (Recommended)',
+          description: 'Use RPrint directly in your browser - no installation required!',
+          url: serverUrl,
+          features: [
+            'Access from any device with a web browser',
+            'No installation or updates needed',
+            'Works on Windows, Mac, Linux, iOS, Android',
+            'Full feature set including file selection and test page printing'
+          ]
+        },
         downloads: [
           {
             id: 'windows-service',
@@ -123,15 +139,22 @@ LOG_LEVEL=info
           },
           {
             id: 'electron-client',
-            name: 'Desktop Client',
-            description: 'Cross-platform desktop application for submitting print jobs',
+            name: 'Desktop Client (Source Code)',
+            description: 'Build the Electron desktop application yourself from source',
             platform: 'Windows, macOS, Linux',
             size: 'Dynamic (excludes node_modules)',
             downloadUrl: '/api/downloads/electron-client',
-            instructions: 'Extract the ZIP file, run npm install, then npm run build'
+            instructions: 'Extract, run npm install, npm run build:win (or build:mac/build:linux)'
           }
         ],
         instructions: {
+          webClient: [
+            `1. Simply visit ${serverUrl} in your web browser`,
+            '2. Register a new account or log in',
+            '3. Select a printer and upload a document',
+            '4. Click Print or Print Test Page',
+            '5. Optional: Add to home screen on mobile devices for app-like experience'
+          ],
           windowsService: [
             '1. Download the Windows Print Service ZIP file',
             '2. Extract to a folder on your Windows 11 machine',
@@ -144,8 +167,11 @@ LOG_LEVEL=info
             '2. Extract to a folder on your computer',
             '3. Open terminal/command prompt in the extracted folder',
             '4. Run: npm install',
-            '5. Run: npm run build',
-            '6. Run the built application from the dist folder'
+            '5. Build for your platform:',
+            '   - Windows: npm run build:win',
+            '   - macOS: npm run build:mac',
+            '   - Linux: npm run build:linux',
+            '6. Find the installer in the release/ folder'
           ]
         }
       });

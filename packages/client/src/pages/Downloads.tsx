@@ -11,9 +11,18 @@ interface DownloadItem {
   instructions: string;
 }
 
+interface WebClient {
+  name: string;
+  description: string;
+  url: string;
+  features: string[];
+}
+
 interface DownloadInfo {
+  webClient?: WebClient;
   downloads: DownloadItem[];
   instructions: {
+    webClient?: string[];
     windowsService: string[];
     electronClient: string[];
   };
@@ -82,6 +91,45 @@ export const Downloads: React.FC = () => {
       </div>
 
       {error && <div className="error">{error}</div>}
+
+      {/* Web Client Section - Recommended */}
+      {downloadInfo?.webClient && (
+        <div className="web-client-section">
+          <div className="web-client-card">
+            <div className="recommended-badge">⭐ RECOMMENDED</div>
+            <h2>{downloadInfo.webClient.name}</h2>
+            <p className="web-client-description">{downloadInfo.webClient.description}</p>
+
+            <div className="web-client-features">
+              <h3>Features:</h3>
+              <ul>
+                {downloadInfo.webClient.features.map((feature, index) => (
+                  <li key={index}>✓ {feature}</li>
+                ))}
+              </ul>
+            </div>
+
+            <button
+              onClick={() => window.location.href = '/'}
+              className="btn btn-primary btn-large"
+              style={{ width: '100%', marginTop: '1.5rem', fontSize: '1.1rem', padding: '1rem' }}
+            >
+              🚀 Use Web Client Now
+            </button>
+
+            {downloadInfo.instructions.webClient && (
+              <div className="web-client-instructions">
+                <h4>How to use:</h4>
+                <ol>
+                  {downloadInfo.instructions.webClient.map((step, index) => (
+                    <li key={index}>{step}</li>
+                  ))}
+                </ol>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Quick Setup Section */}
       <div className="setup-section">
@@ -407,6 +455,102 @@ export const Downloads: React.FC = () => {
         .instruction-section li {
           margin: 0.75rem 0;
           line-height: 1.6;
+        }
+
+        .web-client-section {
+          margin-bottom: 3rem;
+        }
+
+        .web-client-card {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+          border-radius: 12px;
+          padding: 2.5rem;
+          position: relative;
+          box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        }
+
+        .recommended-badge {
+          position: absolute;
+          top: 1rem;
+          right: 1rem;
+          background: #ffd700;
+          color: #2c3e50;
+          padding: 0.5rem 1rem;
+          border-radius: 20px;
+          font-weight: bold;
+          font-size: 0.9rem;
+        }
+
+        .web-client-card h2 {
+          color: white;
+          font-size: 2rem;
+          margin-bottom: 0.5rem;
+        }
+
+        .web-client-description {
+          font-size: 1.1rem;
+          margin-bottom: 1.5rem;
+          opacity: 0.95;
+        }
+
+        .web-client-features {
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 8px;
+          padding: 1.5rem;
+          margin-top: 1.5rem;
+        }
+
+        .web-client-features h3 {
+          color: white;
+          font-size: 1.2rem;
+          margin-bottom: 1rem;
+        }
+
+        .web-client-features ul {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+        }
+
+        .web-client-features li {
+          padding: 0.5rem 0;
+          font-size: 1rem;
+        }
+
+        .web-client-instructions {
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 8px;
+          padding: 1.5rem;
+          margin-top: 1.5rem;
+        }
+
+        .web-client-instructions h4 {
+          color: white;
+          margin-top: 0;
+        }
+
+        .web-client-instructions ol {
+          padding-left: 1.5rem;
+        }
+
+        .web-client-instructions li {
+          margin: 0.5rem 0;
+          line-height: 1.6;
+        }
+
+        .btn-large {
+          background: white;
+          color: #667eea;
+          font-weight: bold;
+          transition: transform 0.2s ease;
+        }
+
+        .btn-large:hover {
+          background: white;
+          color: #667eea;
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         }
       `}</style>
     </div>
