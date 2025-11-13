@@ -109,10 +109,18 @@ export class PrintService {
    * Start polling for print jobs
    */
   private startPolling(): void {
+    if (this.printerMap.size === 0) {
+      logger.warn('No printers found to poll. Printer map is empty.');
+      return;
+    }
+
     // Poll for each printer using their server IDs
     this.printerMap.forEach((printer, printerId) => {
+      logger.info(`Setting up polling for printer: ${printer.name} (ID: ${printerId})`);
+
       const timer = setInterval(async () => {
         if (!this.isRunning) return;
+        logger.debug(`Polling for jobs on printer: ${printer.name}`);
         await this.pollAndPrint(printerId, printer);
       }, this.pollInterval);
 
@@ -128,6 +136,10 @@ export class PrintService {
   private async pollAndPrint(printerId: string, printer: Printer): Promise<void> {
     try {
       const jobs = await this.apiClient.pollPrintJobs(printerId);
+
+      if (jobs.length > 0) {
+        logger.info(`Found ${jobs.length} job(s) for printer ${printer.name}`);
+      }
 
       for (const job of jobs) {
         await this.processPrintJob(job, printer);
