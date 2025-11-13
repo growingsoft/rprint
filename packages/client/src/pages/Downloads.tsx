@@ -60,7 +60,7 @@ export const Downloads: React.FC = () => {
     }
   };
 
-  const handleDownload = (url: string, filename: string) => {
+  const handleDownload = (url: string, _filename: string) => {
     // Open the download URL in a new window/tab
     // The browser will automatically handle the file download
     window.open(url, '_blank');

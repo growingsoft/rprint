@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { useStore } from '../store/useStore';
-import { Printer, PrintOptions, PrintJobStatus } from '../types';
+import { PrintOptions, PrintJobStatus } from '../types';
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -31,6 +31,8 @@ export const Dashboard: React.FC = () => {
     orientation: 'portrait',
     paperSize: 'A4'
   });
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const isElectron = typeof window !== 'undefined' && (window as any).electronAPI;
 
   useEffect(() => {
     if (!api.isAuthenticated()) {
@@ -79,19 +81,33 @@ export const Dashboard: React.FC = () => {
 
   const handleFileSelect = async () => {
     try {
-      const result = await window.electronAPI.selectFile();
-      if (result) {
-        // Create a File object from the selected path
-        const buffer = await window.electronAPI.readFile(result.path);
-        const blob = new Blob([buffer]);
-        const file = new File([blob], result.name, {
-          type: getMimeType(result.name)
-        });
-        setSelectedFile(file);
-        setError('');
+      if (isElectron) {
+        // Use Electron API
+        const result = await (window as any).electronAPI.selectFile();
+        if (result) {
+          // Create a File object from the selected path
+          const buffer = await (window as any).electronAPI.readFile(result.path);
+          const blob = new Blob([buffer]);
+          const file = new File([blob], result.name, {
+            type: getMimeType(result.name)
+          });
+          setSelectedFile(file);
+          setError('');
+        }
+      } else {
+        // Use browser file input
+        fileInputRef.current?.click();
       }
     } catch (err: any) {
       setError('Error selecting file: ' + err.message);
+    }
+  };
+
+  const handleBrowserFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      setError('');
     }
   };
 
@@ -143,6 +159,115 @@ export const Dashboard: React.FC = () => {
       setTimeout(() => setSuccess(''), 3000);
     } catch (err: any) {
       setError('Error cancelling job');
+    }
+  };
+
+  const handleTestPage = async () => {
+    if (!selectedPrinter) {
+      setError('Please select a printer');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      // Create a simple test page PDF
+      const testPageContent = `%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+>>
+endobj
+2 0 obj
+<<
+/Type /Pages
+/Kids [3 0 R]
+/Count 1
+>>
+endobj
+3 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 612 792]
+/Contents 4 0 R
+/Resources <<
+/Font <<
+/F1 <<
+/Type /Font
+/Subtype /Type1
+/BaseFont /Helvetica-Bold
+>>
+/F2 <<
+/Type /Font
+/Subtype /Type1
+/BaseFont /Helvetica
+>>
+>>
+>>
+>>
+endobj
+4 0 obj
+<<
+/Length 500
+>>
+stream
+BT
+/F1 24 Tf
+50 700 Td
+(RPrint Test Page) Tj
+0 -40 Td
+/F2 12 Tf
+(Printer: ${selectedPrinter.displayName}) Tj
+0 -20 Td
+(Date: ${new Date().toLocaleString()}) Tj
+0 -40 Td
+(This is a test page to verify your printer connection.) Tj
+0 -20 Td
+(If you can read this, your printer is working correctly!) Tj
+0 -40 Td
+(Print Options:) Tj
+0 -20 Td
+(- Copies: ${printOptions.copies}) Tj
+0 -20 Td
+(- Color Mode: ${printOptions.colorMode}) Tj
+0 -20 Td
+(- Orientation: ${printOptions.orientation}) Tj
+0 -20 Td
+(- Paper Size: ${printOptions.paperSize}) Tj
+ET
+endstream
+endobj
+xref
+0 5
+0000000000 65535 f
+0000000009 00000 n
+0000000058 00000 n
+0000000115 00000 n
+0000000366 00000 n
+trailer
+<<
+/Size 5
+/Root 1 0 R
+>>
+startxref
+916
+%%EOF`;
+
+      const blob = new Blob([testPageContent], { type: 'application/pdf' });
+      const file = new File([blob], 'test-page.pdf', { type: 'application/pdf' });
+
+      const job = await api.createPrintJob(file, printOptions);
+      addPrintJob(job);
+      setSuccess('Test page sent to printer!');
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Error printing test page');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -201,11 +326,27 @@ export const Dashboard: React.FC = () => {
         <div className="card">
           <h2 className="card-title">Print Document</h2>
 
+          {/* Hidden file input for browser mode */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            style={{ display: 'none' }}
+            onChange={handleBrowserFileSelect}
+            accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png,.gif"
+          />
+
           <div className="form-group">
             <label>Select File</label>
             <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
               <button className="btn btn-secondary" onClick={handleFileSelect}>
                 Browse Files
+              </button>
+              <button
+                className="btn btn-secondary"
+                onClick={handleTestPage}
+                disabled={loading || !selectedPrinter}
+              >
+                Print Test Page
               </button>
               {selectedFile && <span>{selectedFile.name}</span>}
             </div>
