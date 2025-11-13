@@ -19,9 +19,9 @@ if (-not $isAdmin) {
 # Check if Node.js is installed
 try {
     $nodeVersion = node --version
-    Write-Host "[✓] Node.js version: $nodeVersion" -ForegroundColor Green
+    Write-Host "[OK] Node.js version: $nodeVersion" -ForegroundColor Green
 } catch {
-    Write-Host "[✗] Node.js is not installed!" -ForegroundColor Red
+    Write-Host "[FAIL] Node.js is not installed!" -ForegroundColor Red
     Write-Host "Please install Node.js 18+ from https://nodejs.org/" -ForegroundColor Yellow
     Read-Host "Press Enter to exit"
     exit 1
@@ -33,22 +33,25 @@ if (-not (Test-Path ".env")) {
     Write-Host "Creating .env configuration file..." -ForegroundColor Yellow
 
     # Prompt for configuration
-    $serverUrl = Read-Host "Enter your server URL (e.g., https://growingsoft.net)"
+    $serverUrl = Read-Host "Enter your server URL (e.g. https://growingsoft.net)"
     $apiKey = Read-Host "Enter your API key (from server registration)"
-    $workerName = Read-Host "Enter a name for this worker (e.g., Office-Printer)"
+    $workerName = Read-Host "Enter a name for this worker (e.g. Office-Printer)"
 
-    # Create .env file
-    @"
+    # Create .env file content
+    $envContent = @"
 SERVER_URL=$serverUrl
 API_KEY=$apiKey
 WORKER_NAME=$workerName
 POLL_INTERVAL=5000
 LOG_LEVEL=info
-"@ | Out-File -FilePath ".env" -Encoding UTF8
+"@
 
-    Write-Host "[✓] Configuration file created" -ForegroundColor Green
+    # Write to file
+    $envContent | Out-File -FilePath ".env" -Encoding ASCII
+
+    Write-Host "[OK] Configuration file created" -ForegroundColor Green
 } else {
-    Write-Host "[✓] Configuration file (.env) already exists" -ForegroundColor Green
+    Write-Host "[OK] Configuration file (.env) already exists" -ForegroundColor Green
 }
 
 # Install dependencies
@@ -56,22 +59,22 @@ Write-Host ""
 Write-Host "Installing dependencies..." -ForegroundColor Yellow
 npm install
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "[✗] Failed to install dependencies" -ForegroundColor Red
+    Write-Host "[FAIL] Failed to install dependencies" -ForegroundColor Red
     Read-Host "Press Enter to exit"
     exit 1
 }
-Write-Host "[✓] Dependencies installed" -ForegroundColor Green
+Write-Host "[OK] Dependencies installed" -ForegroundColor Green
 
 # Build the project
 Write-Host ""
 Write-Host "Building the service..." -ForegroundColor Yellow
 npm run build
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "[✗] Build failed" -ForegroundColor Red
+    Write-Host "[FAIL] Build failed" -ForegroundColor Red
     Read-Host "Press Enter to exit"
     exit 1
 }
-Write-Host "[✓] Build completed" -ForegroundColor Green
+Write-Host "[OK] Build completed" -ForegroundColor Green
 
 # Ask if user wants to test first
 Write-Host ""
@@ -91,11 +94,11 @@ if ($install -eq "y") {
     Write-Host "Installing Windows service..." -ForegroundColor Yellow
     npm run install-service
     if ($LASTEXITCODE -ne 0) {
-        Write-Host "[✗] Service installation failed" -ForegroundColor Red
+        Write-Host "[FAIL] Service installation failed" -ForegroundColor Red
         Read-Host "Press Enter to exit"
         exit 1
     }
-    Write-Host "[✓] Service installed successfully!" -ForegroundColor Green
+    Write-Host "[OK] Service installed successfully!" -ForegroundColor Green
     Write-Host ""
     Write-Host "The service 'RPrint Windows Service' is now running." -ForegroundColor Green
     Write-Host "It will start automatically when Windows boots." -ForegroundColor Green
