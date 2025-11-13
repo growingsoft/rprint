@@ -44,12 +44,14 @@ export class ApiClient {
   /**
    * Sync printers with server
    */
-  async syncPrinters(printers: Printer[]): Promise<void> {
+  async syncPrinters(printers: Printer[]): Promise<any[]> {
     try {
-      await this.client.post('/api/printers/sync', { printers });
+      const response = await this.client.post('/api/printers/sync', { printers });
+      const syncedPrinters = response.data.printers || [];
       logger.info(`Synced ${printers.length} printers with server`);
+      return syncedPrinters;
     } catch (error: any) {
-      logger.error('Error syncing printers:', error.message);
+      logger.error('Error syncing printers:', error);
       throw error;
     }
   }
@@ -64,7 +66,7 @@ export class ApiClient {
       });
       return response.data.jobs || [];
     } catch (error: any) {
-      logger.error('Error polling print jobs:', error.message);
+      logger.error('Error polling print jobs:', error);
       return [];
     }
   }

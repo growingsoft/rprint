@@ -63,13 +63,21 @@ export class PrintService {
       logger.info(`Found ${this.printers.length} printers`);
 
       if (this.printers.length > 0) {
-        await this.apiClient.syncPrinters(this.printers);
+        const syncedPrinters = await this.apiClient.syncPrinters(this.printers);
 
-        // Update printer map (Note: server returns printer IDs, but we'll use names for now)
+        // Update printer map with server-assigned IDs
         this.printerMap.clear();
-        this.printers.forEach(printer => {
-          this.printerMap.set(printer.name, printer);
+        syncedPrinters.forEach((serverPrinter: any) => {
+          // Find matching local printer by name
+          const localPrinter = this.printers.find(p => p.name === serverPrinter.name);
+          if (localPrinter) {
+            // Add server ID to local printer
+            (localPrinter as any).id = serverPrinter.id;
+            this.printerMap.set(serverPrinter.id, localPrinter);
+          }
         });
+
+        logger.info(`Mapped ${this.printerMap.size} printers with server IDs`);
       }
     } catch (error) {
       logger.error('Error syncing printers:', error);
@@ -101,26 +109,25 @@ export class PrintService {
    * Start polling for print jobs
    */
   private startPolling(): void {
-    // For simplicity, we'll poll for all printers
-    // In production, you'd want to get printer IDs from the server after sync
-    this.printers.forEach(printer => {
+    // Poll for each printer using their server IDs
+    this.printerMap.forEach((printer, printerId) => {
       const timer = setInterval(async () => {
         if (!this.isRunning) return;
-        await this.pollAndPrint(printer);
+        await this.pollAndPrint(printerId, printer);
       }, this.pollInterval);
 
-      this.pollTimers.set(printer.name, timer);
+      this.pollTimers.set(printerId, timer);
     });
+
+    logger.info(`Started polling for ${this.printerMap.size} printers`);
   }
 
   /**
    * Poll for jobs and print them
    */
-  private async pollAndPrint(printer: Printer): Promise<void> {
+  private async pollAndPrint(printerId: string, printer: Printer): Promise<void> {
     try {
-      // Note: In real implementation, you'd need the printer ID from server
-      // For now, we'll use printer name as identifier
-      const jobs = await this.apiClient.pollPrintJobs(printer.name);
+      const jobs = await this.apiClient.pollPrintJobs(printerId);
 
       for (const job of jobs) {
         await this.processPrintJob(job, printer);
