@@ -6,21 +6,40 @@ Thank you for downloading RPrint Virtual Printer!
 This installer allows you to print from ANY application on your computer
 (Word, Excel, Chrome, etc.) directly to your RPrint remote printers.
 
+PREREQUISITES:
+--------------
+
+IMPORTANT: You must have Node.js installed first!
+
+Download Node.js from: https://nodejs.org/
+- Choose the LTS (Long Term Support) version
+- Run the installer and follow the prompts
+- After installation, restart your computer
+
 INSTALLATION INSTRUCTIONS:
 --------------------------
 
 Windows:
-1. Right-click "install-windows.bat"
-2. Select "Run as Administrator"
-3. Follow the on-screen prompts
-4. Configure your RPrint server URL and credentials when prompted
+1. Make sure Node.js is installed (see PREREQUISITES above)
+2. Extract the ZIP file to a folder
+3. Right-click "install.bat" (or "install-windows.bat")
+4. Select "Run as Administrator"
+5. The installer will:
+   - Check for Node.js
+   - Install npm dependencies
+   - Create the virtual printer
+   - Set up the background service
+6. Follow the on-screen prompts
+7. Configure your RPrint server URL and credentials when prompted
 
 Mac:
-1. Open Terminal
-2. Navigate to this folder
-3. Run: sudo ./install-mac.sh
-4. Follow the on-screen prompts
-5. Configure your RPrint server URL and credentials when prompted
+1. Make sure Node.js is installed (see PREREQUISITES above)
+2. Extract the ZIP file to a folder
+3. Open Terminal
+4. Navigate to this folder: cd /path/to/extracted/folder
+5. Run: sudo ./install.sh (or sudo ./install-mac.sh)
+6. Follow the on-screen prompts
+7. Configure your RPrint server URL and credentials when prompted
 
 AFTER INSTALLATION:
 -------------------
