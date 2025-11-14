@@ -2,12 +2,14 @@
   "name": "@rprint/client",
   "version": "1.0.0",
   "description": "Cross-platform Electron app for remote printing",
+  "author": "RPrint",
   "main": "dist/electron/main.js",
   "scripts": {
     "dev": "concurrently \"npm run dev:vite\" \"npm run dev:electron\"",
     "dev:vite": "vite",
     "dev:electron": "wait-on http://localhost:5173 && electron .",
-    "build": "tsc && vite build && electron-builder",
+    "build": "npm run build:electron && vite build && electron-builder",
+    "build:electron": "tsc -p tsconfig.electron.json",
     "build:win": "npm run build -- --win",
     "build:mac": "npm run build -- --mac",
     "build:linux": "npm run build -- --linux",
@@ -40,6 +42,7 @@
   "build": {
     "appId": "com.rprint.client",
     "productName": "RPrint",
+    "electronVersion": "28.0.0",
     "directories": {
       "output": "release"
     },
@@ -53,11 +56,17 @@
     },
     "mac": {
       "target": ["dmg"],
-      "icon": "assets/icon.icns"
+      "icon": "assets/icon.icns",
+      "category": "public.app-category.productivity"
     },
     "linux": {
       "target": ["AppImage"],
-      "icon": "assets/icon.png"
+      "icon": "assets/icon.png",
+      "category": "Office"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
     }
   }
 }

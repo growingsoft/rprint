@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { Downloads } from './pages/Downloads';
+import { ClientDownload } from './pages/ClientDownload';
 import { api } from './services/api';
 import './styles/App.css';
 
@@ -16,6 +17,7 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/downloads" element={<Downloads />} />
+        <Route path="/client" element={<ClientDownload />} />
         <Route
           path="/"
           element={
