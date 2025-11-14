@@ -15,6 +15,8 @@ export interface PrintJob {
   assignedAt?: string;
   completedAt?: string;
   errorMessage?: string;
+  printerName?: string;
+  printerStatus?: string;
 }
 
 export enum PrintJobStatus {

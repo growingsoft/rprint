@@ -433,6 +433,12 @@ startxref
                   <div className="job-info">
                     <h4>{job.fileName}</h4>
                     <p>{new Date(job.createdAt).toLocaleString()}</p>
+                    {job.printerName && (
+                      <p style={{ fontSize: '0.9rem', color: '#666' }}>
+                        🖨️ {job.printerName}
+                        {job.printerStatus === 'offline' && <span style={{ color: '#e74c3c', marginLeft: '0.5rem' }}>(Offline)</span>}
+                      </p>
+                    )}
                     {job.errorMessage && <p style={{ color: '#e74c3c' }}>{job.errorMessage}</p>}
                   </div>
                   <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>

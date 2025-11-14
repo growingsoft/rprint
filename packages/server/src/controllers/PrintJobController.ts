@@ -51,7 +51,7 @@ export class PrintJobController {
       const status = req.query.status as PrintJobStatus | undefined;
       const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
 
-      const jobs = await PrintJobModel.findAll({
+      const jobs = await PrintJobModel.findAllWithPrinter({
         clientId,
         status,
         limit

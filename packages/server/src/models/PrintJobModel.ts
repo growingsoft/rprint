@@ -84,6 +84,51 @@ export class PrintJobModel {
     return rows.map(row => this.mapRow(row));
   }
 
+  static async findAllWithPrinter(filters?: {
+    clientId?: string;
+    printerId?: string;
+    status?: PrintJobStatus;
+    limit?: number;
+  }): Promise<any[]> {
+    let sql = `
+      SELECT
+        pj.*,
+        p.display_name as printer_name,
+        p.status as printer_status
+      FROM print_jobs pj
+      LEFT JOIN printers p ON pj.printer_id = p.id
+      WHERE 1=1
+    `;
+    const params: any[] = [];
+
+    if (filters?.clientId) {
+      sql += ' AND pj.client_id = ?';
+      params.push(filters.clientId);
+    }
+    if (filters?.printerId) {
+      sql += ' AND pj.printer_id = ?';
+      params.push(filters.printerId);
+    }
+    if (filters?.status) {
+      sql += ' AND pj.status = ?';
+      params.push(filters.status);
+    }
+
+    sql += ' ORDER BY pj.created_at DESC';
+
+    if (filters?.limit) {
+      sql += ' LIMIT ?';
+      params.push(filters.limit);
+    }
+
+    const rows = await db.all<any>(sql, params);
+    return rows.map(row => ({
+      ...this.mapRow(row),
+      printerName: row.printer_name || 'Unknown Printer',
+      printerStatus: row.printer_status || 'offline'
+    }));
+  }
+
   static async updateStatus(
     id: string,
     status: PrintJobStatus,
