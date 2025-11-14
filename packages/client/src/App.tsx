@@ -4,6 +4,7 @@ import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { Downloads } from './pages/Downloads';
 import { ClientDownload } from './pages/ClientDownload';
+import { AdminPrinters } from './pages/AdminPrinters';
 import { api } from './services/api';
 import './styles/App.css';
 
@@ -17,7 +18,15 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/downloads" element={<Downloads />} />
-        <Route path="/client" element={<ClientDownload />} />
+        <Route path="/client-download" element={<ClientDownload />} />
+        <Route
+          path="/admin/printers"
+          element={
+            <ProtectedRoute>
+              <AdminPrinters />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/"
           element={

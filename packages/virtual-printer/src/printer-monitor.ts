@@ -4,6 +4,7 @@ import * as path from 'path';
 import axios from 'axios';
 import FormData from 'form-data';
 import * as dotenv from 'dotenv';
+import { PrinterDialog } from './PrinterDialog';
 
 dotenv.config();
 
@@ -103,17 +104,25 @@ export class PrinterMonitor {
         return;
       }
 
-      // Use specified printer or first available
-      const targetPrinter = this.config.printerName
-        ? printers.find((p: any) => p.name === this.config.printerName) || printers[0]
-        : printers[0];
+      // Show printer selection dialog
+      const dialog = new PrinterDialog();
+      const options = await dialog.show(printers);
 
-      // Upload to RPrint server
-      await this.uploadPrintJob(filePath, targetPrinter.id);
+      if (!options) {
+        console.log('Print job cancelled by user');
+        fs.unlinkSync(filePath);
+        this.processing.delete(filePath);
+        return;
+      }
+
+      // Upload to RPrint server for each selected printer
+      for (const printerId of options.printerIds) {
+        await this.uploadPrintJob(filePath, printerId, options.copies, options.colorMode);
+      }
 
       // Delete the file after successful upload
       fs.unlinkSync(filePath);
-      console.log(`Print job sent successfully and file cleaned up`);
+      console.log(`Print job sent to ${options.printerIds.length} printer(s) successfully and file cleaned up`);
 
     } catch (error: any) {
       console.error('Error processing print job:', error.message);
@@ -139,7 +148,8 @@ export class PrinterMonitor {
 
   private async getAvailablePrinters() {
     try {
-      const response = await axios.get(`${this.config.serverUrl}/api/printers`, {
+      // Use the virtual-printer endpoint to get only enabled printers
+      const response = await axios.get(`${this.config.serverUrl}/api/printers/virtual-printer/list`, {
         headers: {
           'Authorization': `Bearer ${this.authToken}`
         }
@@ -152,11 +162,17 @@ export class PrinterMonitor {
     }
   }
 
-  private async uploadPrintJob(filePath: string, printerId: number) {
+  private async uploadPrintJob(
+    filePath: string,
+    printerId: string,
+    copies: number = 1,
+    colorMode: 'color' | 'grayscale' = 'color'
+  ) {
     const form = new FormData();
     form.append('file', fs.createReadStream(filePath));
-    form.append('printerId', printerId.toString());
-    form.append('copies', '1');
+    form.append('printerId', printerId);
+    form.append('copies', copies.toString());
+    form.append('colorMode', colorMode);
 
     const response = await axios.post(`${this.config.serverUrl}/api/jobs`, form, {
       headers: {
@@ -165,7 +181,7 @@ export class PrinterMonitor {
       }
     });
 
-    console.log(`Job created: ID ${response.data.id}, Status: ${response.data.status}`);
+    console.log(`Job created: ID ${response.data.id}, Printer: ${printerId}, Copies: ${copies}, Status: ${response.data.status}`);
     return response.data;
   }
 }
