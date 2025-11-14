@@ -63,6 +63,7 @@ const windowsFiles = [
   { src: path.join(ROOT_DIR, 'node_modules'), dest: 'node_modules' },
   // Templates
   { src: path.join(TEMPLATES_DIR, 'install-windows.bat'), dest: 'install.bat' },
+  { src: path.join(TEMPLATES_DIR, 'uninstall-windows.bat'), dest: 'uninstall.bat' },
   { src: path.join(TEMPLATES_DIR, 'README.txt'), dest: 'README.txt' },
   { src: path.join(ROOT_DIR, '.env.example'), dest: '.env.example' },
   // Package files

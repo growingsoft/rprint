@@ -114,15 +114,31 @@ echo Installing Background Service
 echo ============================================
 echo.
 
-REM Install as Windows service using node-windows
-echo Installing monitor service...
-powershell -ExecutionPolicy Bypass -Command "node dist/install-service.js"
+REM Create a startup script
+echo @echo off > "%INSTALL_DIR%\start-monitor.bat"
+echo cd /d "%INSTALL_DIR%" >> "%INSTALL_DIR%\start-monitor.bat"
+echo node dist/index.js >> "%INSTALL_DIR%\start-monitor.bat"
+
+REM Create a VBS script to run the monitor silently (no console window)
+echo Set WshShell = CreateObject("WScript.Shell") > "%INSTALL_DIR%\start-monitor-silent.vbs"
+echo WshShell.Run """%INSTALL_DIR%\start-monitor.bat""", 0, False >> "%INSTALL_DIR%\start-monitor-silent.vbs"
+
+echo Installing as Windows scheduled task to run at startup...
+schtasks /Create /SC ONLOGON /TN "RPrint Virtual Printer Monitor" /TR """%INSTALL_DIR%\start-monitor-silent.vbs""" /RL HIGHEST /F
 
 if %errorLevel% neq 0 (
     echo.
-    echo WARNING: Service installation may have failed
-    echo You can run the monitor manually with: node dist/index.js
+    echo WARNING: Scheduled task creation may have failed
     echo.
+) else (
+    echo.
+    echo Task created successfully!
+    echo Starting the monitor now...
+
+    REM Start the monitor in background
+    start "" /B wscript "%INSTALL_DIR%\start-monitor-silent.vbs"
+
+    echo Monitor started!
 )
 
 echo.
@@ -130,20 +146,26 @@ echo ============================================
 echo Installation Complete!
 echo ============================================
 echo.
-echo The RPrint Virtual Printer has been installed.
+echo The RPrint Virtual Printer has been installed and is running!
 echo.
-echo To print:
+echo TO PRINT:
 echo 1. Open any application (Word, Excel, Chrome, etc.)
 echo 2. Go to Print (Ctrl+P)
 echo 3. Select "RPrint Virtual Printer"
 echo 4. Save the PDF to: %WATCH_FOLDER%
 echo.
-echo The background service will automatically upload your print jobs!
+echo The background monitor will automatically upload your print jobs!
 echo.
-echo To manage the service:
-echo - Open Services (services.msc)
-echo - Look for "RPrint Virtual Printer Monitor"
+echo MANAGING THE MONITOR:
+echo - The monitor runs automatically when you log in
+echo - To view/manage: Task Scheduler -^> "RPrint Virtual Printer Monitor"
+echo - To stop temporarily: taskkill /IM node.exe /F
+echo - To restart: Run %INSTALL_DIR%\start-monitor-silent.vbs
+echo.
+echo UNINSTALL:
+echo - Run: %INSTALL_DIR%\uninstall.bat
 echo.
 echo Installation directory: %INSTALL_DIR%
+echo Watch folder: %WATCH_FOLDER%
 echo.
 pause
