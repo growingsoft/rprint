@@ -101,7 +101,8 @@ class ApiService {
 
   // Printer endpoints
   async getPrinters(): Promise<Printer[]> {
-    const response = await this.client.get<{ printers: Printer[] }>('/printers');
+    // Use virtual-printer endpoint to get only enabled printers
+    const response = await this.client.get<{ printers: Printer[] }>('/printers/virtual-printer/list');
     return response.data.printers;
   }
 
@@ -165,6 +166,23 @@ class ApiService {
   async registerWorkerAndDownload(name: string): Promise<any> {
     const response = await this.client.post('/downloads/register-and-download', { name });
     return response.data;
+  }
+
+  // Generic HTTP methods for direct API access
+  async get(url: string, config?: any) {
+    return this.client.get(url, config);
+  }
+
+  async post(url: string, data?: any, config?: any) {
+    return this.client.post(url, data, config);
+  }
+
+  async put(url: string, data?: any, config?: any) {
+    return this.client.put(url, data, config);
+  }
+
+  async delete(url: string, config?: any) {
+    return this.client.delete(url, config);
   }
 }
 
