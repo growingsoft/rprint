@@ -59,4 +59,37 @@ export class PrinterController {
       res.status(500).json({ error: error.message });
     }
   }
+
+  // Get printers enabled for virtual printer
+  static async listForVirtualPrinter(req: AuthRequest, res: Response) {
+    try {
+      const printers = await PrinterModel.findAllForVirtualPrinter();
+      res.json({ printers });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  // Update printer settings (virtual_printer_enabled, tags)
+  static async updateSettings(req: AuthRequest, res: Response) {
+    try {
+      const { id } = req.params;
+      const { virtual_printer_enabled, tags } = req.body;
+
+      const printer = await PrinterModel.findById(id);
+      if (!printer) {
+        return res.status(404).json({ error: 'Printer not found' });
+      }
+
+      await PrinterModel.updateSettings(id, {
+        virtual_printer_enabled: virtual_printer_enabled !== undefined ? virtual_printer_enabled : printer.virtual_printer_enabled,
+        tags: tags !== undefined ? tags : printer.tags
+      });
+
+      const updated = await PrinterModel.findById(id);
+      res.json({ printer: updated });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
 }

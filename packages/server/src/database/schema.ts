@@ -30,6 +30,8 @@ CREATE TABLE IF NOT EXISTS printers (
   description TEXT,
   location TEXT,
   capabilities TEXT NOT NULL,
+  virtual_printer_enabled INTEGER DEFAULT 1,
+  tags TEXT,
   last_seen DATETIME DEFAULT CURRENT_TIMESTAMP,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (worker_id) REFERENCES workers(id) ON DELETE CASCADE,

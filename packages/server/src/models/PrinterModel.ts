@@ -84,6 +84,39 @@ export class PrinterModel {
     await db.run('DELETE FROM printers WHERE worker_id = ?', [workerId]);
   }
 
+  static async findAllForVirtualPrinter(): Promise<Printer[]> {
+    const rows = await db.all(`
+      SELECT * FROM printers
+      WHERE status = 'online'
+      AND virtual_printer_enabled = 1
+      ORDER BY is_default DESC, display_name ASC
+    `);
+    return rows.map(this.mapRow);
+  }
+
+  static async updateSettings(id: string, settings: { virtual_printer_enabled?: number, tags?: string }): Promise<void> {
+    const updates: string[] = [];
+    const params: any[] = [];
+
+    if (settings.virtual_printer_enabled !== undefined) {
+      updates.push('virtual_printer_enabled = ?');
+      params.push(settings.virtual_printer_enabled ? 1 : 0);
+    }
+
+    if (settings.tags !== undefined) {
+      updates.push('tags = ?');
+      params.push(settings.tags);
+    }
+
+    if (updates.length === 0) return;
+
+    params.push(id);
+    await db.run(
+      `UPDATE printers SET ${updates.join(', ')} WHERE id = ?`,
+      params
+    );
+  }
+
   private static mapRow(row: any): Printer {
     return {
       id: row.id,
@@ -95,6 +128,8 @@ export class PrinterModel {
       description: row.description,
       location: row.location,
       capabilities: JSON.parse(row.capabilities),
+      virtual_printer_enabled: row.virtual_printer_enabled === 1,
+      tags: row.tags,
       lastSeen: new Date(row.last_seen),
       createdAt: new Date(row.created_at)
     };

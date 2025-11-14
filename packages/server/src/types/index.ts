@@ -37,6 +37,8 @@ export interface Printer {
   description?: string;
   location?: string;
   capabilities: PrinterCapabilities;
+  virtual_printer_enabled?: boolean;
+  tags?: string;
   lastSeen: Date;
   createdAt: Date;
 }

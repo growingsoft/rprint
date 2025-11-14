@@ -8,6 +8,12 @@ const router = Router();
 router.get('/', authenticateClient, PrinterController.list);
 router.get('/:id', authenticateClient, PrinterController.get);
 
+// Virtual printer endpoints
+router.get('/virtual-printer/list', authenticateClient, PrinterController.listForVirtualPrinter);
+
+// Admin endpoints
+router.put('/:id/settings', authenticateClient, PrinterController.updateSettings);
+
 // Worker routes
 router.post('/sync', authenticateWorker, PrinterController.syncPrinters);
 
