@@ -196,6 +196,24 @@ LOG_LEVEL=info
         },
         downloads: [
           {
+            id: 'virtual-printer-windows',
+            name: '🖨️ Virtual Printer for Windows (RECOMMENDED)',
+            description: 'Print from ANY Windows application (Word, Excel, Chrome, etc.) directly to RPrint',
+            platform: 'Windows 10/11',
+            size: '~120 KB',
+            downloadUrl: '/api/downloads/virtual-printer/windows',
+            instructions: 'Extract ZIP, right-click install.bat and Run as Administrator'
+          },
+          {
+            id: 'virtual-printer-mac',
+            name: '🖨️ Virtual Printer for Mac (RECOMMENDED)',
+            description: 'Print from ANY Mac application (Word, Excel, Safari, etc.) directly to RPrint',
+            platform: 'macOS',
+            size: '~120 KB',
+            downloadUrl: '/api/downloads/virtual-printer/mac',
+            instructions: 'Extract ZIP, run: sudo ./install.sh'
+          },
+          {
             id: 'windows-service',
             name: 'Windows Print Service',
             description: 'Install on your Windows 11 machine to enable remote printing',
