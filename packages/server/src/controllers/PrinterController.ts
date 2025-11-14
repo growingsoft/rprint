@@ -36,10 +36,8 @@ export class PrinterController {
         return res.status(400).json({ error: 'Printers must be an array' });
       }
 
-      // Delete existing printers for this worker
-      await PrinterModel.deleteByWorker(workerId);
-
-      // Insert new printers
+      // Upsert printers (update existing or insert new)
+      // This preserves printer IDs and settings like virtual_printer_enabled and tags
       const results = [];
       for (const p of printers) {
         const printer = await PrinterModel.upsert(
@@ -52,6 +50,15 @@ export class PrinterController {
           p.location
         );
         results.push(printer);
+      }
+
+      // Mark printers that weren't in the sync as offline
+      const syncedPrinterNames = printers.map((p: any) => p.name);
+      const existingPrinters = await PrinterModel.findByWorker(workerId);
+      for (const existing of existingPrinters) {
+        if (!syncedPrinterNames.includes(existing.name)) {
+          await PrinterModel.updateStatus(existing.id, 'offline' as any);
+        }
       }
 
       res.json({ printers: results });
