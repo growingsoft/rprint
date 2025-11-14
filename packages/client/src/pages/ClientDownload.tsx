@@ -62,6 +62,39 @@ export const ClientDownload: React.FC = () => {
           </p>
         </div>
 
+        <div className="virtual-printer-section">
+          <h3 style={{ textAlign: 'center', marginTop: '2rem' }}>🖨️ Virtual Printer</h3>
+          <p style={{ textAlign: 'center', marginBottom: '1.5rem', opacity: 0.9 }}>
+            Print from ANY application (Word, Excel, Chrome, etc.) directly to RPrint!
+          </p>
+          <div className="option-card virtual-printer">
+            <h4>Print from Anywhere</h4>
+            <p>Install the RPrint Virtual Printer and print from any app on your computer:</p>
+            <ul style={{ textAlign: 'left', marginLeft: '2rem', marginTop: '1rem' }}>
+              <li>Microsoft Office (Word, Excel, PowerPoint)</li>
+              <li>Web browsers (Chrome, Firefox, Safari, Edge)</li>
+              <li>PDF readers and any other application with a Print button</li>
+            </ul>
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginTop: '1.5rem' }}>
+              <button
+                className="btn btn-primary"
+                onClick={() => window.open('/api/downloads/virtual-printer/windows', '_blank')}
+              >
+                📥 Download for Windows
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={() => window.open('/api/downloads/virtual-printer/mac', '_blank')}
+              >
+                📥 Download for Mac
+              </button>
+            </div>
+            <p style={{ textAlign: 'center', fontSize: '0.9rem', marginTop: '1rem', opacity: 0.8 }}>
+              Adds "RPrint Virtual Printer" to your system. Print jobs are automatically uploaded.
+            </p>
+          </div>
+        </div>
+
         <div className="quick-start">
           <h4>How to use (3 steps):</h4>
           <ol>
@@ -321,6 +354,33 @@ npm run build:linux</code></pre>
           margin-top: 2rem;
           padding-top: 1.5rem;
           border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .virtual-printer-section {
+          margin-top: 2rem;
+          padding: 2rem;
+          background: linear-gradient(135deg, rgba(106, 17, 203, 0.2), rgba(37, 117, 252, 0.2));
+          border-radius: 12px;
+          border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .virtual-printer-section h3 {
+          font-size: 1.8rem;
+          margin-bottom: 0.5rem;
+        }
+
+        .virtual-printer {
+          background: rgba(255, 255, 255, 0.15);
+          backdrop-filter: blur(10px);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .virtual-printer ul {
+          list-style-type: disc;
+        }
+
+        .virtual-printer li {
+          margin: 0.5rem 0;
         }
 
         .quick-start {

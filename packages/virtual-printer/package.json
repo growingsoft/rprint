@@ -10,7 +10,10 @@
     "install-printer": "node dist/install-printer.js",
     "uninstall-printer": "node dist/uninstall-printer.js",
     "install-service": "node dist/install-service.js",
-    "uninstall-service": "node dist/uninstall-service.js"
+    "uninstall-service": "node dist/uninstall-service.js",
+    "build:installer": "npm run build && node scripts/build-installer.js",
+    "build:win": "npm run build && pkg dist/index.js -t node18-win-x64 -o installer/rprint-monitor.exe",
+    "build:mac": "npm run build && pkg dist/index.js -t node18-macos-x64 -o installer/rprint-monitor"
   },
   "keywords": [
     "printer",
@@ -28,6 +31,14 @@
   },
   "devDependencies": {
     "@types/node": "^20.10.0",
-    "typescript": "^5.3.0"
+    "typescript": "^5.3.0",
+    "pkg": "^5.8.1",
+    "archiver": "^6.0.1"
+  },
+  "pkg": {
+    "assets": [
+      "node_modules/**/*"
+    ],
+    "outputPath": "installer"
   }
 }

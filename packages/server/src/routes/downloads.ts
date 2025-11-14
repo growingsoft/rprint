@@ -15,6 +15,9 @@ router.get('/electron-client', DownloadController.downloadElectronClient);
 // Download Client Installer (Windows or Mac)
 router.get('/client-installer/:platform', DownloadController.downloadClientInstaller);
 
+// Download Virtual Printer (Windows or Mac)
+router.get('/virtual-printer/:platform', DownloadController.downloadVirtualPrinter);
+
 // Register worker and get download info (public endpoint)
 router.post('/register-and-download', DownloadController.registerAndDownload);
 

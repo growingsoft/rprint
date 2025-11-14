@@ -149,6 +149,30 @@ LOG_LEVEL=info
     }
   }
 
+  // Download Virtual Printer Installer
+  static async downloadVirtualPrinter(req: Request, res: Response) {
+    try {
+      const { platform } = req.params; // 'windows' or 'mac'
+      const installerPath = path.join(__dirname, '../../../virtual-printer/installer');
+
+      const filename = platform === 'mac'
+        ? 'rprint-virtual-printer-mac.zip'
+        : 'rprint-virtual-printer-windows.zip';
+
+      const filePath = path.join(installerPath, filename);
+
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ error: 'Virtual printer installer not found' });
+      }
+
+      // Send the pre-built installer file
+      res.download(filePath, filename);
+    } catch (error: any) {
+      console.error('Download error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+
   // Get download information
   static async getDownloadInfo(req: Request, res: Response) {
     try {
