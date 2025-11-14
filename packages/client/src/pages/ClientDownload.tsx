@@ -39,6 +39,29 @@ export const ClientDownload: React.FC = () => {
           🚀 Start Using Web Client
         </button>
 
+        <div className="install-options">
+          <p style={{ textAlign: 'center', marginTop: '1.5rem', opacity: 0.9 }}>
+            Or install a shortcut to your computer:
+          </p>
+          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginTop: '1rem' }}>
+            <button
+              className="btn btn-secondary"
+              onClick={() => window.open('/api/downloads/client-installer/windows', '_blank')}
+            >
+              📥 Windows Installer
+            </button>
+            <button
+              className="btn btn-secondary"
+              onClick={() => window.open('/api/downloads/client-installer/mac', '_blank')}
+            >
+              📥 Mac Installer
+            </button>
+          </div>
+          <p style={{ textAlign: 'center', fontSize: '0.9rem', marginTop: '0.5rem', opacity: 0.8 }}>
+            Creates a desktop shortcut that opens RPrint in your browser
+          </p>
+        </div>
+
         <div className="quick-start">
           <h4>How to use (3 steps):</h4>
           <ol>
@@ -281,6 +304,23 @@ npm run build:linux</code></pre>
           color: #667eea;
           transform: translateY(-2px);
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .option-card.recommended .btn-secondary {
+          background: rgba(255, 255, 255, 0.2);
+          color: white;
+          border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .option-card.recommended .btn-secondary:hover {
+          background: rgba(255, 255, 255, 0.3);
+          border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .install-options {
+          margin-top: 2rem;
+          padding-top: 1.5rem;
+          border-top: 1px solid rgba(255, 255, 255, 0.2);
         }
 
         .quick-start {

@@ -12,6 +12,9 @@ router.get('/windows-service', DownloadController.downloadWindowsService);
 // Download Electron client package
 router.get('/electron-client', DownloadController.downloadElectronClient);
 
+// Download Client Installer (Windows or Mac)
+router.get('/client-installer/:platform', DownloadController.downloadClientInstaller);
+
 // Register worker and get download info (public endpoint)
 router.post('/register-and-download', DownloadController.registerAndDownload);
 

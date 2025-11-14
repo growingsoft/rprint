@@ -106,6 +106,49 @@ LOG_LEVEL=info
     }
   }
 
+  // Download Client Installer
+  static async downloadClientInstaller(req: Request, res: Response) {
+    try {
+      const { platform } = req.params; // 'windows' or 'mac'
+      const installerPath = path.join(__dirname, '../../../client-installer');
+
+      if (!fs.existsSync(installerPath)) {
+        return res.status(404).json({ error: 'Installer files not found' });
+      }
+
+      const filename = platform === 'mac' ? 'rprint-installer-mac.zip' : 'rprint-installer-windows.zip';
+
+      // Set headers for download
+      res.setHeader('Content-Type', 'application/zip');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+      // Create archive
+      const archive = archiver('zip', { zlib: { level: 9 } });
+
+      archive.on('error', (err) => {
+        console.error('Archive error:', err);
+        res.status(500).json({ error: 'Failed to create archive' });
+      });
+
+      // Pipe archive to response
+      archive.pipe(res);
+
+      // Add installer files
+      archive.file(path.join(installerPath, 'README.txt'), { name: 'README.txt' });
+
+      if (platform === 'mac') {
+        archive.file(path.join(installerPath, 'install-mac.sh'), { name: 'install-mac.sh' });
+      } else {
+        archive.file(path.join(installerPath, 'install-windows.bat'), { name: 'install-windows.bat' });
+      }
+
+      await archive.finalize();
+    } catch (error: any) {
+      console.error('Download error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+
   // Get download information
   static async getDownloadInfo(req: Request, res: Response) {
     try {
