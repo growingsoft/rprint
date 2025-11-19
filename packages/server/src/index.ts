@@ -5,6 +5,7 @@ import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
 import { db } from './database';
 import { scheduler } from './utils/scheduler';
 
@@ -14,6 +15,10 @@ import printerRoutes from './routes/printers';
 import jobRoutes from './routes/jobs';
 import workerRoutes from './routes/workers';
 import downloadRoutes from './routes/downloads';
+import webhookRoutes from './routes/webhooks';
+import apikeyRoutes from './routes/apikeys';
+import packageRoutes from './routes/packages';
+import clientRoutes from './routes/clients';
 
 dotenv.config();
 
@@ -24,7 +29,18 @@ const PORT = process.env.PORT || 3000;
 app.set('trust proxy', 1);
 
 // Middleware
-app.use(helmet());
+// Configure helmet to allow Swagger UI resources
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "unpkg.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "unpkg.com"],
+      imgSrc: ["'self'", "data:", "validator.swagger.io"],
+      fontSrc: ["'self'", "data:"],
+    },
+  },
+}));
 app.use(compression());
 app.use(cors({
   origin: process.env.ALLOWED_ORIGINS?.split(',') || '*',
@@ -48,10 +64,37 @@ app.use('/api/printers', printerRoutes);
 app.use('/api/jobs', jobRoutes);
 app.use('/api/workers', workerRoutes);
 app.use('/api/downloads', downloadRoutes);
+app.use('/api/webhooks', webhookRoutes);
+app.use('/api/api-keys', apikeyRoutes);
+app.use('/api/packages', packageRoutes);
+app.use('/api/clients', clientRoutes);
 
-// Health check
+// Health check (both /health and /api/health for compatibility)
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+app.get('/api/health', (_req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Serve OpenAPI specification
+app.get('/api/openapi.yaml', (_req, res) => {
+  const openapiPath = path.join(__dirname, '../openapi.yaml');
+  if (fs.existsSync(openapiPath)) {
+    res.type('text/yaml').sendFile(openapiPath);
+  } else {
+    res.status(404).json({ error: 'OpenAPI specification not found' });
+  }
+});
+
+// Redirect /apidoc to documentation page
+app.get('/apidoc', (_req, res) => {
+  res.sendFile(path.join(__dirname, '../public/apidoc.html'));
+});
+
+// Also serve /apidoc.html for direct access
+app.get('/apidoc.html', (_req, res) => {
+  res.sendFile(path.join(__dirname, '../public/apidoc.html'));
 });
 
 // Error handling middleware

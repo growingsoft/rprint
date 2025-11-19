@@ -17,8 +17,9 @@ export class PrintJobModel {
     await db.run(
       `INSERT INTO print_jobs (
         id, client_id, printer_id, file_name, file_path, file_size, mime_type,
-        status, copies, color_mode, duplex, orientation, paper_size, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        status, copies, color_mode, duplex, orientation, paper_size, quality,
+        margin_top, margin_bottom, margin_left, margin_right, webhook_url, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         clientId,
@@ -33,6 +34,12 @@ export class PrintJobModel {
         options.duplex || 'none',
         options.orientation || 'portrait',
         options.paperSize || 'A4',
+        options.quality || 'normal',
+        options.marginTop || 10,
+        options.marginBottom || 10,
+        options.marginLeft || 10,
+        options.marginRight || 10,
+        options.webhookUrl || null,
         now
       ]
     );
@@ -94,9 +101,13 @@ export class PrintJobModel {
       SELECT
         pj.*,
         p.display_name as printer_name,
-        p.status as printer_status
+        p.status as printer_status,
+        w.name as worker_name,
+        c.display_name as client_name
       FROM print_jobs pj
       LEFT JOIN printers p ON pj.printer_id = p.id
+      LEFT JOIN workers w ON p.worker_id = w.id
+      LEFT JOIN clients c ON pj.client_id = c.id
       WHERE 1=1
     `;
     const params: any[] = [];
@@ -124,8 +135,10 @@ export class PrintJobModel {
     const rows = await db.all<any>(sql, params);
     return rows.map(row => ({
       ...this.mapRow(row),
-      printerName: row.printer_name || 'Unknown Printer',
-      printerStatus: row.printer_status || 'offline'
+      printer_name: row.printer_name || 'Unknown Printer',
+      printerStatus: row.printer_status || 'offline',
+      worker_name: row.worker_name || 'Unknown Server',
+      client_name: row.client_name || 'Unknown Client'
     }));
   }
 
@@ -188,6 +201,7 @@ export class PrintJobModel {
       duplex: row.duplex,
       orientation: row.orientation,
       paperSize: row.paper_size,
+      webhookUrl: row.webhook_url,
       createdAt: new Date(row.created_at),
       assignedAt: row.assigned_at ? new Date(row.assigned_at) : undefined,
       completedAt: row.completed_at ? new Date(row.completed_at) : undefined,

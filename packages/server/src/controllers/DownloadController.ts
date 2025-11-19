@@ -7,56 +7,13 @@ export class DownloadController {
   // Download Windows service package
   static async downloadWindowsService(req: Request, res: Response) {
     try {
-      const servicePath = path.join(__dirname, '../../../windows-service');
+      const zipPath = path.join(__dirname, '../../public/downloads/rprint-windows-service.zip');
 
-      if (!fs.existsSync(servicePath)) {
-        return res.status(404).json({ error: 'Windows service files not found' });
+      if (!fs.existsSync(zipPath)) {
+        return res.status(404).json({ error: 'Windows service package not found' });
       }
 
-      // Check if this is a configured download (with credentials)
-      const { workerId, apiKey, workerName, serverUrl } = req.query;
-
-      // Set headers for download
-      res.setHeader('Content-Type', 'application/zip');
-      res.setHeader('Content-Disposition', 'attachment; filename="rprint-windows-service.zip"');
-
-      // Create archive
-      const archive = archiver('zip', { zlib: { level: 9 } });
-
-      archive.on('error', (err) => {
-        console.error('Archive error:', err);
-        res.status(500).json({ error: 'Failed to create archive' });
-      });
-
-      // Pipe archive to response
-      archive.pipe(res);
-
-      // Add files to archive, excluding node_modules and build artifacts
-      archive.glob('**/*', {
-        cwd: servicePath,
-        ignore: [
-          'node_modules/**',
-          'dist/**',
-          'logs/**',
-          '.env',
-          '*.log',
-          '.git/**'
-        ]
-      });
-
-      // If credentials provided, add pre-configured .env file
-      if (apiKey && workerName && serverUrl) {
-        const envContent = `SERVER_URL=${serverUrl}
-API_KEY=${apiKey}
-WORKER_NAME=${workerName}
-POLL_INTERVAL=5000
-LOG_LEVEL=info
-`;
-        archive.append(envContent, { name: '.env' });
-        console.log(`Created .env for worker: ${workerName}`);
-      }
-
-      await archive.finalize();
+      res.download(zipPath, 'rprint-windows-service.zip');
     } catch (error: any) {
       console.error('Download error:', error);
       res.status(500).json({ error: error.message });
@@ -173,6 +130,23 @@ LOG_LEVEL=info
     }
   }
 
+  // Download Diagnostics Tool
+  static async downloadDiagnostics(req: Request, res: Response) {
+    try {
+      const diagnosticsPath = path.join(__dirname, '../../../windows-service/installer/rprint-diagnostics-windows.zip');
+
+      if (!fs.existsSync(diagnosticsPath)) {
+        return res.status(404).json({ error: 'Diagnostics tool not found' });
+      }
+
+      // Send the pre-built diagnostics file
+      res.download(diagnosticsPath, 'rprint-diagnostics-windows.zip');
+    } catch (error: any) {
+      console.error('Download error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+
   // Get download information
   static async getDownloadInfo(req: Request, res: Response) {
     try {
@@ -206,21 +180,36 @@ LOG_LEVEL=info
           },
           {
             id: 'virtual-printer-mac',
-            name: '🖨️ Virtual Printer for Mac (RECOMMENDED)',
-            description: 'Print from ANY Mac application (Word, Excel, Safari, etc.) directly to RPrint',
-            platform: 'macOS',
-            size: '~120 KB',
+            name: '🍎 Mac Virtual Printer - ZERO CONFIG (RECOMMENDED)',
+            description: 'Print from ANY Mac application - Safari, Word, Excel, Preview, Chrome, etc. NO configuration during install! Just run installer and configure on first print with GUI dialogs.',
+            platform: 'macOS 10.13+',
+            size: '~8 KB',
             downloadUrl: '/api/downloads/virtual-printer/mac',
-            instructions: 'Extract ZIP, run: sudo ./install.sh'
+            instructions: 'Extract ZIP, open Terminal, run: sudo ./install.sh - Done! Configure on first print.'
+          },
+          {
+            id: 'diagnostics',
+            name: '🔧 Windows Worker Diagnostics Tool',
+            description: 'Test your Windows worker setup before running - checks configuration, connectivity, and printing',
+            platform: 'Windows',
+            size: '~6 KB',
+            downloadUrl: '/api/downloads/diagnostics',
+            instructions: 'Extract ZIP, configure .env file with your credentials, run run-diagnostics.bat'
           },
           {
             id: 'windows-service',
             name: 'Windows Print Service',
-            description: 'Install on your Windows 11 machine to enable remote printing',
-            platform: 'Windows 11',
-            size: 'Dynamic (excludes node_modules)',
+            description: 'Install on your Windows machine to enable remote printing. Includes printer filtering support.',
+            platform: 'Windows 10/11',
+            size: '~8.4 MB',
             downloadUrl: '/api/downloads/windows-service',
-            instructions: 'Extract the ZIP file, then run INSTALL.bat as Administrator'
+            instructions: 'Extract the ZIP, download .env file from admin panel, run INSTALL.bat as Administrator',
+            features: [
+              'Automatic printer synchronization',
+              'Filter specific printers to sync',
+              'PDF and document printing support',
+              'Automatic retry and error handling'
+            ]
           },
           {
             id: 'electron-client',

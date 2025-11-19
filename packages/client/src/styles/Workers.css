@@ -1,0 +1,270 @@
+.workers-container {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.workers-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.workers-header h1 {
+  margin: 0;
+  font-size: 28px;
+  color: #333;
+}
+
+.new-worker-display {
+  background: #f6ffed;
+  border: 2px solid #b7eb8f;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 30px;
+}
+
+.new-worker-display h3 {
+  margin-top: 0;
+  color: #52c41a;
+}
+
+.installation-instructions {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 15px;
+  margin: 15px 0;
+}
+
+.installation-instructions h4 {
+  margin-top: 0;
+  color: #333;
+}
+
+.installation-instructions ol {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.installation-instructions pre {
+  background: #f5f5f5;
+  padding: 8px;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+}
+
+.workers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.worker-card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.worker-header {
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.worker-header:hover {
+  background: #fafafa;
+}
+
+.worker-info h3 {
+  margin: 0 0 10px 0;
+  font-size: 20px;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.status-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.status-indicator.online {
+  background: #52c41a;
+  box-shadow: 0 0 8px rgba(82, 196, 26, 0.5);
+}
+
+.status-indicator.offline {
+  background: #ff4d4f;
+}
+
+.worker-meta {
+  display: flex;
+  gap: 20px;
+  font-size: 14px;
+  color: #666;
+}
+
+.status-badge {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.status-badge.online {
+  background: #f6ffed;
+  color: #52c41a;
+}
+
+.status-badge.offline {
+  background: #fff1f0;
+  color: #ff4d4f;
+}
+
+.worker-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.expand-icon {
+  font-size: 16px;
+  color: #999;
+}
+
+.worker-details {
+  padding: 0 20px 20px 20px;
+  border-top: 1px solid #f0f0f0;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.worker-details h4 {
+  margin: 20px 0 15px 0;
+  color: #333;
+}
+
+.no-printers {
+  color: #999;
+  font-style: italic;
+}
+
+.printers-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.printers-table thead {
+  background: #fafafa;
+}
+
+.printers-table th {
+  padding: 10px 12px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 13px;
+  color: #555;
+  border-bottom: 2px solid #e8e8e8;
+}
+
+.printers-table td {
+  padding: 12px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.printers-table small {
+  color: #999;
+  font-size: 12px;
+}
+
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 24px;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: 0.3s;
+  border-radius: 24px;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.3s;
+  border-radius: 50%;
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  background-color: #52c41a;
+}
+
+.toggle-switch input:checked + .toggle-slider:before {
+  transform: translateX(24px);
+}
+
+.enabled-badge {
+  color: #52c41a;
+  font-size: 13px;
+}
+
+.disabled-badge {
+  color: #999;
+  font-size: 13px;
+}
+
+.workers-info {
+  margin-top: 40px;
+  padding: 20px;
+  background: #f6f8fa;
+  border-radius: 8px;
+}
+
+.workers-info h3 {
+  margin-top: 0;
+  color: #333;
+}
+
+.workers-info p {
+  color: #666;
+  line-height: 1.6;
+}

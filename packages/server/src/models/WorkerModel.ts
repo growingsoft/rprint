@@ -57,6 +57,13 @@ export class WorkerModel {
     );
   }
 
+  static async updateApiKey(id: string, apiKey: string): Promise<void> {
+    await db.run(
+      'UPDATE workers SET api_key = ? WHERE id = ?',
+      [apiKey, id]
+    );
+  }
+
   static async delete(id: string): Promise<void> {
     await db.run('DELETE FROM workers WHERE id = ?', [id]);
   }

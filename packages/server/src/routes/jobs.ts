@@ -7,6 +7,7 @@ const router = Router();
 
 // Client routes
 router.post('/', authenticateClient, upload.single('file'), PrintJobController.create);
+router.post('/print-url', authenticateClient, PrintJobController.createFromUrl);
 router.get('/', authenticateClient, PrintJobController.list);
 router.get('/:id', authenticateClient, PrintJobController.get);
 router.delete('/:id', authenticateClient, PrintJobController.cancel);

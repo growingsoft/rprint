@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS clients (
   password_hash TEXT NOT NULL,
   display_name TEXT NOT NULL,
   email TEXT,
+  role TEXT DEFAULT 'user' CHECK(role IN ('admin', 'user')),
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -53,12 +54,70 @@ CREATE TABLE IF NOT EXISTS print_jobs (
   duplex TEXT DEFAULT 'none',
   orientation TEXT DEFAULT 'portrait',
   paper_size TEXT DEFAULT 'A4',
+  webhook_url TEXT,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   assigned_at DATETIME,
   completed_at DATETIME,
   error_message TEXT,
   FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE,
   FOREIGN KEY (printer_id) REFERENCES printers(id) ON DELETE CASCADE
+);
+
+-- API Keys table (for permanent server-to-server authentication)
+CREATE TABLE IF NOT EXISTS api_keys (
+  id TEXT PRIMARY KEY,
+  client_id TEXT NOT NULL,
+  key TEXT UNIQUE NOT NULL,
+  name TEXT NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  expires_at DATETIME,
+  last_used_at DATETIME,
+  FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE
+);
+
+-- Webhooks table
+CREATE TABLE IF NOT EXISTS webhooks (
+  id TEXT PRIMARY KEY,
+  client_id TEXT NOT NULL,
+  url TEXT NOT NULL,
+  events TEXT NOT NULL,
+  secret TEXT,
+  active INTEGER DEFAULT 1,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  last_triggered_at DATETIME,
+  FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE
+);
+
+-- Client Packages table (for virtual printer packages)
+CREATE TABLE IF NOT EXISTS client_packages (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  operating_system TEXT NOT NULL CHECK(operating_system IN ('windows', 'mac', 'linux')),
+  auth_token TEXT UNIQUE NOT NULL,
+  client_id TEXT NOT NULL,
+  default_printer_id TEXT,
+  version TEXT DEFAULT '1.0.0',
+  auto_update_enabled INTEGER DEFAULT 1,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  last_updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  last_download_at DATETIME,
+  FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE,
+  FOREIGN KEY (default_printer_id) REFERENCES printers(id) ON DELETE SET NULL
+);
+
+-- Server Packages table (for Windows worker packages)
+CREATE TABLE IF NOT EXISTS server_packages (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  worker_id TEXT UNIQUE NOT NULL,
+  api_key TEXT UNIQUE NOT NULL,
+  selected_printers TEXT,
+  version TEXT DEFAULT '1.0.0',
+  auto_update_enabled INTEGER DEFAULT 1,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  last_updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  last_download_at DATETIME,
+  FOREIGN KEY (worker_id) REFERENCES workers(id) ON DELETE CASCADE
 );
 
 -- Indexes for performance
@@ -68,4 +127,8 @@ CREATE INDEX IF NOT EXISTS idx_print_jobs_client ON print_jobs(client_id);
 CREATE INDEX IF NOT EXISTS idx_print_jobs_created ON print_jobs(created_at);
 CREATE INDEX IF NOT EXISTS idx_printers_worker ON printers(worker_id);
 CREATE INDEX IF NOT EXISTS idx_workers_status ON workers(status);
+CREATE INDEX IF NOT EXISTS idx_api_keys_client ON api_keys(client_id);
+CREATE INDEX IF NOT EXISTS idx_webhooks_client ON webhooks(client_id);
+CREATE INDEX IF NOT EXISTS idx_client_packages_client ON client_packages(client_id);
+CREATE INDEX IF NOT EXISTS idx_server_packages_worker ON server_packages(worker_id);
 `;

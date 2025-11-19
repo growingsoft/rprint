@@ -23,6 +23,7 @@ const storage = multer.diskStorage({
 const fileFilter = (_req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
   const allowedMimeTypes = [
     'application/pdf',
+    'application/postscript', // PostScript files from CUPS/virtual printers
     'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     'application/vnd.ms-excel',
@@ -32,12 +33,17 @@ const fileFilter = (_req: any, file: Express.Multer.File, cb: multer.FileFilterC
     'image/png',
     'image/gif',
     'image/bmp',
-    'image/tiff'
+    'image/tiff',
+    'application/octet-stream' // Allow binary files temporarily for debugging
   ];
+
+  // Log what we're receiving
+  console.log(`[UPLOAD] File: ${file.originalname}, MIME: ${file.mimetype}, Size: ${file.size || 'unknown'}`);
 
   if (allowedMimeTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
+    console.log(`[UPLOAD] REJECTED - MIME type not allowed: ${file.mimetype}`);
     cb(new Error('Invalid file type. Only PDF, documents, spreadsheets, and images are allowed.'));
   }
 };

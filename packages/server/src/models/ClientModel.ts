@@ -8,16 +8,17 @@ export class ClientModel {
     username: string,
     password: string,
     displayName: string,
-    email?: string
+    email?: string,
+    role: 'admin' | 'user' = 'user'
   ): Promise<Client> {
     const id = uuidv4();
     const passwordHash = await bcrypt.hash(password, 10);
     const now = new Date().toISOString();
 
     await db.run(
-      `INSERT INTO clients (id, username, password_hash, display_name, email, created_at)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [id, username, passwordHash, displayName, email, now]
+      `INSERT INTO clients (id, username, password_hash, display_name, email, role, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [id, username, passwordHash, displayName, email, role, now]
     );
 
     const client = await this.findById(id);
@@ -60,6 +61,10 @@ export class ClientModel {
     await db.run('DELETE FROM clients WHERE id = ?', [id]);
   }
 
+  static async updateRole(id: string, role: 'admin' | 'user'): Promise<void> {
+    await db.run('UPDATE clients SET role = ? WHERE id = ?', [role, id]);
+  }
+
   private static mapRow(row: any): Client {
     return {
       id: row.id,
@@ -67,6 +72,7 @@ export class ClientModel {
       passwordHash: row.password_hash,
       displayName: row.display_name,
       email: row.email,
+      role: row.role || 'user',
       createdAt: new Date(row.created_at)
     };
   }

@@ -13,6 +13,8 @@ router.get('/virtual-printer/list', authenticateClient, PrinterController.listFo
 
 // Admin endpoints
 router.put('/:id/settings', authenticateClient, PrinterController.updateSettings);
+router.put('/:id', authenticateClient, PrinterController.updateSettings);
+router.post('/worker/:workerId/remove-duplicates', authenticateClient, PrinterController.removeDuplicates);
 
 // Worker routes
 router.post('/sync', authenticateWorker, PrinterController.syncPrinters);

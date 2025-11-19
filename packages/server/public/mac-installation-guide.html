@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RPrint Virtual Printer for Mac - Installation Guide</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem 1rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 3rem 2rem;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.95;
+        }
+
+        .content {
+            padding: 3rem 2rem;
+        }
+
+        .step {
+            margin-bottom: 3rem;
+            padding: 2rem;
+            background: #f8f9fa;
+            border-radius: 12px;
+            border-left: 4px solid #667eea;
+        }
+
+        .step h2 {
+            color: #667eea;
+            font-size: 1.8rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .step-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            background: #667eea;
+            color: white;
+            border-radius: 50%;
+            font-weight: bold;
+            font-size: 1.3rem;
+        }
+
+        .step-content {
+            margin-left: 56px;
+        }
+
+        .code-block {
+            background: #2d3748;
+            color: #f7fafc;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95rem;
+            overflow-x: auto;
+        }
+
+        .code-block code {
+            color: #68d391;
+        }
+
+        .info-box {
+            background: #e6f7ff;
+            border: 1px solid #91d5ff;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+        }
+
+        .info-box h3 {
+            color: #0050b3;
+            margin-bottom: 0.5rem;
+        }
+
+        .warning-box {
+            background: #fff7e6;
+            border: 1px solid #ffd591;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+        }
+
+        .warning-box h3 {
+            color: #d46b08;
+            margin-bottom: 0.5rem;
+        }
+
+        .success-box {
+            background: #f6ffed;
+            border: 1px solid #b7eb8f;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+        }
+
+        .success-box h3 {
+            color: #52c41a;
+            margin-bottom: 0.5rem;
+        }
+
+        .download-btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 1.1rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin: 1rem 0;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        ul {
+            margin: 1rem 0;
+            padding-left: 2rem;
+        }
+
+        li {
+            margin: 0.5rem 0;
+        }
+
+        .troubleshooting {
+            background: #fff;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-top: 3rem;
+        }
+
+        .troubleshooting h2 {
+            color: #dc3545;
+            margin-bottom: 1.5rem;
+        }
+
+        .troubleshooting-item {
+            margin: 1.5rem 0;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .troubleshooting-item:last-child {
+            border-bottom: none;
+        }
+
+        .troubleshooting-item h3 {
+            color: #495057;
+            margin-bottom: 0.5rem;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .content {
+                padding: 2rem 1rem;
+            }
+
+            .step {
+                padding: 1.5rem;
+            }
+
+            .step-content {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🖨️ RPrint Virtual Printer for Mac</h1>
+            <p>Print from ANY Mac application directly to RPrint!</p>
+        </div>
+
+        <div class="content">
+            <div class="info-box">
+                <h3>📦 What's included?</h3>
+                <p>This installer will set up the RPrint Virtual Printer on your Mac. Once installed, you'll be able to print from Safari, Word, Excel, Preview, Chrome, and any other Mac application directly to your RPrint remote printers.</p>
+            </div>
+
+            <div class="step">
+                <h2><span class="step-number">1</span> Download</h2>
+                <div class="step-content">
+                    <p>Download the Mac virtual printer installer:</p>
+                    <a href="/api/downloads/virtual-printer/mac" class="download-btn">📥 Download for Mac (~7 KB)</a>
+                    <p style="margin-top: 1rem; color: #666; font-size: 0.9rem;">
+                        Compatible with macOS 10.13 (High Sierra) and later
+                    </p>
+                </div>
+            </div>
+
+            <div class="step">
+                <h2><span class="step-number">2</span> No Configuration Needed!</h2>
+                <div class="step-content">
+                    <div class="success-box">
+                        <h3>✨ NEW: Zero-Configuration Installation!</h3>
+                        <p>You no longer need to prepare credentials before installation. Just run the installer, and you'll configure everything on first use with easy GUI dialogs!</p>
+                    </div>
+
+                    <div class="info-box">
+                        <h3>📝 You'll configure on first print:</h3>
+                        <p>When you print for the first time, a macOS dialog will appear asking for:</p>
+                        <ul>
+                            <li><strong>Server URL:</strong> https://growingsoft.net</li>
+                            <li><strong>Authentication Token:</strong> Get from <a href="/api-token" target="_blank" style="color: #667eea;">🎫 My Token</a> page</li>
+                            <li><strong>Printer ID (Optional):</strong> Get from <a href="/admin/printers" target="_blank" style="color: #667eea;">⚙️ Printers</a> page</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step">
+                <h2><span class="step-number">3</span> Extract the ZIP</h2>
+                <div class="step-content">
+                    <p>Double-click the downloaded ZIP file to extract it. You should see a folder named <code>mac</code> containing:</p>
+                    <ul>
+                        <li><strong>install.sh</strong> - The installation script (no config needed!)</li>
+                        <li><strong>rprint-config</strong> - GUI configuration helper (automatic on first use)</li>
+                        <li><strong>rprint-backend</strong> - CUPS backend script</li>
+                        <li><strong>uninstall.sh</strong> - Uninstaller (for later if needed)</li>
+                        <li><strong>README.txt</strong> - Detailed instructions</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="step">
+                <h2><span class="step-number">4</span> Run the Installer (No Config!)</h2>
+                <div class="step-content">
+                    <p>Open Terminal (Applications → Utilities → Terminal) and run:</p>
+
+                    <div class="code-block">
+<code>cd ~/Downloads/mac
+sudo ./install.sh</code>
+                    </div>
+
+                    <div class="warning-box">
+                        <h3>⚠️ Administrator Password Required</h3>
+                        <p>You'll be asked for your Mac password. This is necessary to install system-level printer drivers. Your password won't be visible as you type - this is normal!</p>
+                    </div>
+
+                    <div class="success-box">
+                        <h3>✅ That's It!</h3>
+                        <p>The installer will:</p>
+                        <ol>
+                            <li>Install the CUPS backend</li>
+                            <li>Install the configuration helper</li>
+                            <li>Create the RPrint virtual printer</li>
+                            <li>Ask if you want to set it as default (optional)</li>
+                        </ol>
+                        <p><strong>No configuration questions during install!</strong></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step">
+                <h2><span class="step-number">5</span> Start Printing!</h2>
+                <div class="step-content">
+                    <div class="success-box">
+                        <h3>✅ Installation Complete!</h3>
+                        <p>The RPrint virtual printer is now installed and ready to use.</p>
+                    </div>
+
+                    <p><strong>To print from any application:</strong></p>
+                    <ol>
+                        <li>Open any Mac application (Safari, Word, Preview, etc.)</li>
+                        <li>Click <strong>File → Print</strong> (or press ⌘P)</li>
+                        <li>Select <strong>"RPrint"</strong> as your printer</li>
+                        <li>Adjust settings if needed</li>
+                        <li>Click <strong>Print</strong></li>
+                    </ol>
+
+                    <p style="margin-top: 1rem;">Your document will be uploaded to RPrint and sent to your configured remote printer! 🎉</p>
+                </div>
+            </div>
+
+            <div class="troubleshooting">
+                <h2>🔧 Troubleshooting</h2>
+
+                <div class="troubleshooting-item">
+                    <h3>Problem: "Permission denied" when running install.sh</h3>
+                    <p><strong>Solution:</strong> Make sure you're using <code>sudo</code>:</p>
+                    <div class="code-block"><code>sudo ./install.sh</code></div>
+                </div>
+
+                <div class="troubleshooting-item">
+                    <h3>Problem: Printer not appearing in print dialog</h3>
+                    <p><strong>Solution:</strong> Check if the printer was installed correctly:</p>
+                    <div class="code-block"><code>lpstat -p RPrint</code></div>
+                    <p>If it shows as paused or stopped, try restarting CUPS:</p>
+                    <div class="code-block"><code>sudo launchctl stop org.cups.cupsd
+sudo launchctl start org.cups.cupsd</code></div>
+                </div>
+
+                <div class="troubleshooting-item">
+                    <h3>Problem: Print jobs not uploading</h3>
+                    <p><strong>Solution:</strong> Check the CUPS error log for details:</p>
+                    <div class="code-block"><code>tail -f /var/log/cups/error_log</code></div>
+                    <p>Also verify your configuration:</p>
+                    <div class="code-block"><code>cat /etc/rprint/config</code></div>
+                    <p>Test your authentication token:</p>
+                    <div class="code-block"><code>curl -H "Authorization: Bearer YOUR_TOKEN" \
+     https://growingsoft.net/api/printers</code></div>
+                </div>
+
+                <div class="troubleshooting-item">
+                    <h3>Problem: Need to reconfigure</h3>
+                    <p><strong>Solution:</strong> Run the installer again and choose "yes" to reconfigure:</p>
+                    <div class="code-block"><code>sudo ./install.sh</code></div>
+                </div>
+            </div>
+
+            <div class="info-box" style="margin-top: 3rem;">
+                <h3>📚 Need More Help?</h3>
+                <p>Check the included README.txt file for more detailed information, or visit the RPrint help center.</p>
+            </div>
+
+            <div class="warning-box" style="margin-top: 2rem;">
+                <h3>🗑️ Uninstalling</h3>
+                <p>To remove the RPrint Virtual Printer from your Mac, run:</p>
+                <div class="code-block"><code>cd ~/Downloads/mac
+sudo ./uninstall.sh</code></div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

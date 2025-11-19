@@ -1,0 +1,288 @@
+#!/bin/bash
+#
+# RPrint Virtual Printer - CUPS Backend for macOS
+# PRE-CONFIGURED - No setup required!
+#
+
+# CUPS backend interface expects specific exit codes and behavior
+# See: https://www.cups.org/doc/man-backend.html
+
+# PRE-CONFIGURED CREDENTIALS (embedded in installer)
+RPRINT_SERVER_URL="https://growingsoft.net"
+RPRINT_AUTH_TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjbGllbnRJZCI6IjAzMzc0ZWE0LWJkOGUtNGM3NC1hMzAwLTM4ZmRjOWY4MmQ5MyIsImlhdCI6MTc2MzE0NzM1OCwiZXhwIjoxNzY1NzM5MzU4fQ.mRs3b1AvzCfMbBr4af5L-i8LY_6CpkpHOqt0btCHPiA"
+RPRINT_DEFAULT_PRINTER_ID="3cb8074e-1c54-4427-85f8-af985d05360f"
+
+# Function to log messages
+log_message() {
+    echo "INFO: $1" >&2
+}
+
+log_error() {
+    echo "ERROR: $1" >&2
+}
+
+# When called with no arguments, CUPS is discovering backends
+if [ $# -eq 0 ]; then
+    # Return: file rprint "Unknown" "RPrint Virtual Printer"
+    echo "file rprint \"Unknown\" \"RPrint Virtual Printer\""
+    exit 0
+fi
+
+# When called with 5 or 6 arguments, we're printing
+# Arguments: job-id user title copies options [file]
+if [ $# -lt 5 ]; then
+    log_error "Invalid number of arguments: $#"
+    exit 1
+fi
+
+JOB_ID="$1"
+USER="$2"
+TITLE="$3"
+COPIES="$4"
+OPTIONS="$5"
+FILE="$6"
+
+log_message "Starting print job: ID=$JOB_ID, User=$USER, Title=$TITLE, Copies=$COPIES"
+log_message "FILE parameter: '${FILE}' (length=${#FILE})"
+
+# Create temp file in CUPS-approved directory
+# macOS CUPS runs in sandbox and can only write to specific directories
+CUPS_TMP="/private/var/spool/cups/tmp"
+
+# Try CUPS temp directory first (sandboxed CUPS has write access here)
+if [ -d "$CUPS_TMP" ] && [ -w "$CUPS_TMP" ]; then
+    TEMP_FILE=$(mktemp "$CUPS_TMP/rprint-job.XXXXXX" 2>&1)
+    MKTEMP_EXIT=$?
+
+    if [ $MKTEMP_EXIT -eq 0 ] && [ -n "$TEMP_FILE" ] && [ -f "$TEMP_FILE" ]; then
+        log_message "Created temp file in CUPS directory: $TEMP_FILE"
+    else
+        log_error "Failed to create temp in CUPS dir: $TEMP_FILE"
+        TEMP_FILE=""
+    fi
+else
+    log_message "CUPS temp directory not writable: $CUPS_TMP"
+    TEMP_FILE=""
+fi
+
+# If CUPS temp failed, try standard locations
+if [ -z "$TEMP_FILE" ]; then
+    log_message "Trying /var/tmp..."
+    TEMP_FILE=$(mktemp /var/tmp/rprint-job.XXXXXX 2>&1)
+    MKTEMP_EXIT=$?
+
+    if [ $MKTEMP_EXIT -ne 0 ] || [ -z "$TEMP_FILE" ] || [ ! -f "$TEMP_FILE" ]; then
+        log_message "Failed in /var/tmp, trying /tmp..."
+        TEMP_FILE=$(mktemp /tmp/rprint-job.XXXXXX 2>&1)
+        MKTEMP_EXIT=$?
+
+        if [ $MKTEMP_EXIT -ne 0 ] || [ -z "$TEMP_FILE" ] || [ ! -f "$TEMP_FILE" ]; then
+            log_message "Failed in /tmp, trying default location..."
+            TEMP_FILE=$(mktemp 2>&1)
+            MKTEMP_EXIT=$?
+
+            if [ $MKTEMP_EXIT -ne 0 ] || [ -z "$TEMP_FILE" ]; then
+                log_error "All mktemp attempts failed!"
+                log_error "CUPS sandbox may be preventing file creation"
+                exit 1
+            fi
+        fi
+    fi
+fi
+
+log_message "Created temp file: $TEMP_FILE"
+
+# Verify temp file exists and is writable
+if [ ! -f "$TEMP_FILE" ]; then
+    log_error "Temp file doesn't exist: $TEMP_FILE"
+    exit 1
+fi
+
+if [ ! -w "$TEMP_FILE" ]; then
+    log_error "Temp file not writable: $TEMP_FILE"
+    exit 1
+fi
+
+# Strategy: Try file argument first, if that fails try stdin
+FILE_COPIED=0
+
+# First, try to use the file argument if provided
+if [ -n "$FILE" ] && [ "$FILE" != "-" ]; then
+    log_message "File argument provided: '$FILE'"
+
+    # Check file permissions and details
+    if [ -e "$FILE" ]; then
+        log_message "File exists, details: $(ls -lh "$FILE" 2>&1 | head -1)"
+
+        # Check if readable
+        if [ -r "$FILE" ]; then
+            log_message "File is readable"
+
+            # Try to copy
+            CP_OUTPUT=$(cp "$FILE" "$TEMP_FILE" 2>&1)
+            CP_EXIT=$?
+
+            if [ $CP_EXIT -eq 0 ]; then
+                COPY_SIZE=$(stat -f%z "$TEMP_FILE" 2>/dev/null || stat -c%s "$TEMP_FILE" 2>/dev/null || echo "0")
+                log_message "Successfully copied file (size: $COPY_SIZE bytes)"
+                FILE_COPIED=1
+            else
+                log_error "Failed to copy file (exit code: $CP_EXIT)"
+                log_error "cp output: $CP_OUTPUT"
+            fi
+        else
+            log_error "File exists but is not readable"
+            log_error "File permissions: $(stat -f%A "$FILE" 2>&1)"
+        fi
+    else
+        log_message "File does not exist: '$FILE'"
+    fi
+fi
+
+# If we didn't get the file via argument, try stdin
+if [ $FILE_COPIED -eq 0 ]; then
+    log_message "Attempting to read from stdin..."
+    log_message "Stdin is: $([ -t 0 ] && echo 'terminal (no data)' || echo 'pipe/file (has data)')"
+
+    # Try to read from stdin without timeout
+    # Redirect stderr to see any errors
+    cat > "$TEMP_FILE" 2>&1
+    CAT_EXIT=$?
+
+    STDIN_SIZE=$(stat -f%z "$TEMP_FILE" 2>/dev/null || stat -c%s "$TEMP_FILE" 2>/dev/null || echo "0")
+    log_message "cat exit code: $CAT_EXIT"
+    log_message "Read from stdin: $STDIN_SIZE bytes"
+
+    if [ $CAT_EXIT -eq 0 ] && [ "$STDIN_SIZE" -gt 0 ]; then
+        FILE_COPIED=1
+        log_message "Successfully read data from stdin"
+    elif [ $CAT_EXIT -ne 0 ]; then
+        log_error "cat command failed with exit code: $CAT_EXIT"
+    else
+        log_error "stdin read succeeded but got 0 bytes"
+        log_error "This means CUPS is not providing any data"
+    fi
+fi
+
+# Final check - do we have data?
+if [ ! -f "$TEMP_FILE" ]; then
+    log_error "Temp file does not exist: $TEMP_FILE"
+    exit 1
+fi
+
+FILE_SIZE=$(stat -f%z "$TEMP_FILE" 2>/dev/null || echo "0")
+log_message "Final temp file size: $FILE_SIZE bytes"
+
+if [ "$FILE_SIZE" -eq 0 ]; then
+    log_error "No print data received!"
+    log_error "File argument: '${FILE}' (length=${#FILE})"
+    log_error "Tried to read from file argument: $([ -n "$FILE" ] && echo "yes" || echo "no")"
+    log_error "Tried to read from stdin: yes"
+    log_error "Both methods failed to provide data"
+
+    # Try one more thing - list CUPS temp directory
+    log_error "CUPS temp directory contents:"
+    ls -la /private/var/spool/cups/tmp/ 2>&1 | tail -10 | sed 's/^/  /' >&2
+
+    rm -f "$TEMP_FILE"
+    exit 1
+fi
+
+FILE="$TEMP_FILE"
+log_message "Using temp file: $FILE (size: $FILE_SIZE bytes)"
+
+# Determine file type
+FILE_TYPE=$(file -b --mime-type "$FILE")
+log_message "Detected file type: $FILE_TYPE"
+
+# Parse print options
+COLOR_MODE="color"
+DUPLEX="none"
+ORIENTATION="portrait"
+PAPER_SIZE="Letter"
+
+# Parse CUPS options (format: key=value key=value)
+IFS=' ' read -ra OPTS <<< "$OPTIONS"
+for opt in "${OPTS[@]}"; do
+    case "$opt" in
+        ColorModel=*)
+            value="${opt#*=}"
+            if echo "$value" | grep -qi "Gray\|Mono"; then
+                COLOR_MODE="grayscale"
+            fi
+            ;;
+        Duplex=*)
+            value="${opt#*=}"
+            case "$value" in
+                DuplexNoTumble) DUPLEX="long" ;;
+                DuplexTumble) DUPLEX="short" ;;
+            esac
+            ;;
+        orientation-requested=*)
+            value="${opt#*=}"
+            if [ "$value" = "4" ]; then
+                ORIENTATION="landscape"
+            fi
+            ;;
+        PageSize=*|media=*)
+            value="${opt#*=}"
+            # Extract paper size
+            PAPER_SIZE="${value%%_*}"
+            ;;
+    esac
+done
+
+log_message "Print options: Color=$COLOR_MODE, Duplex=$DUPLEX, Orientation=$ORIENTATION, Paper=$PAPER_SIZE"
+
+# Use printer ID
+PRINTER_ID="${RPRINT_DEFAULT_PRINTER_ID}"
+log_message "Using printer ID: $PRINTER_ID"
+
+# Determine filename
+if [ -n "$TITLE" ] && [ "$TITLE" != "-" ]; then
+    FILENAME="$TITLE"
+else
+    FILENAME="Print Job $JOB_ID"
+fi
+
+# Add appropriate extension based on file type
+case "$FILE_TYPE" in
+    application/pdf) FILENAME="$FILENAME.pdf" ;;
+    application/postscript) FILENAME="$FILENAME.ps" ;;
+    image/*) FILENAME="$FILENAME.${FILE_TYPE#image/}" ;;
+    text/plain) FILENAME="$FILENAME.txt" ;;
+esac
+
+log_message "Uploading to RPrint server: $RPRINT_SERVER_URL"
+
+# Upload to RPrint server using curl
+RESPONSE=$(curl -s -w "\n%{http_code}" \
+    -X POST \
+    -H "Authorization: Bearer $RPRINT_AUTH_TOKEN" \
+    -F "file=@$FILE;filename=$FILENAME" \
+    -F "printerId=$PRINTER_ID" \
+    -F "copies=$COPIES" \
+    -F "colorMode=$COLOR_MODE" \
+    -F "duplex=$DUPLEX" \
+    -F "orientation=$ORIENTATION" \
+    -F "paperSize=$PAPER_SIZE" \
+    "$RPRINT_SERVER_URL/api/jobs")
+
+HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+BODY=$(echo "$RESPONSE" | sed '$d')
+
+# Clean up temporary file if we created one
+if [ -n "$TEMP_FILE" ]; then
+    rm -f "$TEMP_FILE"
+fi
+
+# Check response
+if [ "$HTTP_CODE" -eq 201 ] || [ "$HTTP_CODE" -eq 200 ]; then
+    log_message "Print job uploaded successfully"
+    log_message "Response: $BODY"
+    exit 0
+else
+    log_error "Failed to upload print job. HTTP Status: $HTTP_CODE"
+    log_error "Response: $BODY"
+    exit 1
+fi

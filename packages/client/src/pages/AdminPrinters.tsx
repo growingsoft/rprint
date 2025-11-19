@@ -11,6 +11,10 @@ interface Printer {
   virtual_printer_enabled?: boolean;
   tags?: string;
   workerId: string;
+  default_paper_size?: string;
+  default_orientation?: string;
+  default_color_mode?: string;
+  default_duplex?: string;
 }
 
 export const AdminPrinters: React.FC = () => {
@@ -36,7 +40,14 @@ export const AdminPrinters: React.FC = () => {
     }
   };
 
-  const updatePrinterSettings = async (printerId: string, settings: { virtual_printer_enabled?: boolean; tags?: string }) => {
+  const updatePrinterSettings = async (printerId: string, settings: {
+    virtual_printer_enabled?: boolean;
+    tags?: string;
+    default_paper_size?: string;
+    default_orientation?: string;
+    default_color_mode?: string;
+    default_duplex?: string;
+  }) => {
     try {
       setSaving(printerId);
       await api.put(`/printers/${printerId}/settings`, settings);
@@ -64,6 +75,10 @@ export const AdminPrinters: React.FC = () => {
 
   const updateTags = (printer: Printer, tags: string) => {
     updatePrinterSettings(printer.id, { tags });
+  };
+
+  const updateDefaultSettings = (printer: Printer, field: string, value: string) => {
+    updatePrinterSettings(printer.id, { [field]: value });
   };
 
   if (loading) {
@@ -141,6 +156,69 @@ export const AdminPrinters: React.FC = () => {
                     disabled={saving === printer.id}
                   />
                   <small>Use tags to organize printers (e.g., color, bw, office)</small>
+                </div>
+
+                <div className="default-settings-section">
+                  <h4>Default Print Settings</h4>
+                  <div className="default-settings-grid">
+                    <div className="setting-group">
+                      <label>Default Paper Size:</label>
+                      <select
+                        value={printer.default_paper_size || 'A4'}
+                        onChange={(e) => updateDefaultSettings(printer, 'default_paper_size', e.target.value)}
+                        disabled={saving === printer.id}
+                      >
+                        <option value="A4">A4 (210 × 297 mm)</option>
+                        <option value="Letter">Letter (8.5 × 11 in)</option>
+                        <option value="Legal">Legal (8.5 × 14 in)</option>
+                        <option value="4x6">4 × 6 in (Shipping Label)</option>
+                        <option value="A3">A3 (297 × 420 mm)</option>
+                        <option value="A5">A5 (148 × 210 mm)</option>
+                        <option value="Tabloid">Tabloid (11 × 17 in)</option>
+                      </select>
+                    </div>
+
+                    <div className="setting-group">
+                      <label>Default Orientation:</label>
+                      <select
+                        value={printer.default_orientation || 'portrait'}
+                        onChange={(e) => updateDefaultSettings(printer, 'default_orientation', e.target.value)}
+                        disabled={saving === printer.id}
+                      >
+                        <option value="portrait">Portrait</option>
+                        <option value="landscape">Landscape</option>
+                      </select>
+                    </div>
+
+                    <div className="setting-group">
+                      <label>Default Color Mode:</label>
+                      <select
+                        value={printer.default_color_mode || 'color'}
+                        onChange={(e) => updateDefaultSettings(printer, 'default_color_mode', e.target.value)}
+                        disabled={saving === printer.id}
+                      >
+                        <option value="color">Color</option>
+                        <option value="grayscale">Grayscale</option>
+                        <option value="monochrome">Monochrome (Black & White)</option>
+                      </select>
+                    </div>
+
+                    <div className="setting-group">
+                      <label>Default Duplex:</label>
+                      <select
+                        value={printer.default_duplex || 'none'}
+                        onChange={(e) => updateDefaultSettings(printer, 'default_duplex', e.target.value)}
+                        disabled={saving === printer.id}
+                      >
+                        <option value="none">None (Single-Sided)</option>
+                        <option value="long-edge">Long Edge (Book Style)</option>
+                        <option value="short-edge">Short Edge (Flip Style)</option>
+                      </select>
+                    </div>
+                  </div>
+                  <small className="settings-info">
+                    These defaults will be automatically applied when users select this printer
+                  </small>
                 </div>
               </div>
 
@@ -343,6 +421,65 @@ export const AdminPrinters: React.FC = () => {
         .tags-input small {
           font-size: 0.8rem;
           opacity: 0.7;
+        }
+
+        .default-settings-section {
+          padding: 1rem;
+          background: #f8f9fa;
+          border-radius: 8px;
+          border: 1px solid #e9ecef;
+        }
+
+        .default-settings-section h4 {
+          margin: 0 0 1rem 0;
+          font-size: 1rem;
+          font-weight: 600;
+          color: #333;
+        }
+
+        .default-settings-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 1rem;
+          margin-bottom: 0.75rem;
+        }
+
+        .setting-group {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+
+        .setting-group label {
+          font-size: 0.85rem;
+          font-weight: 500;
+          color: #555;
+        }
+
+        .setting-group select {
+          padding: 0.5rem;
+          border: 1px solid #ddd;
+          border-radius: 6px;
+          font-size: 0.9rem;
+          background: white;
+          cursor: pointer;
+        }
+
+        .setting-group select:focus {
+          outline: none;
+          border-color: #667eea;
+        }
+
+        .setting-group select:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        .settings-info {
+          display: block;
+          font-size: 0.8rem;
+          opacity: 0.7;
+          font-style: italic;
         }
 
         .saving-indicator {

@@ -18,6 +18,9 @@ router.get('/client-installer/:platform', DownloadController.downloadClientInsta
 // Download Virtual Printer (Windows or Mac)
 router.get('/virtual-printer/:platform', DownloadController.downloadVirtualPrinter);
 
+// Download Diagnostics Tool
+router.get('/diagnostics', DownloadController.downloadDiagnostics);
+
 // Register worker and get download info (public endpoint)
 router.post('/register-and-download', DownloadController.registerAndDownload);
 

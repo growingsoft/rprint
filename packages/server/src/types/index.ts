@@ -12,6 +12,12 @@ export interface PrintJob {
   duplex: 'none' | 'short' | 'long';
   orientation: 'portrait' | 'landscape';
   paperSize: string;
+  quality?: string;
+  marginTop?: number;
+  marginBottom?: number;
+  marginLeft?: number;
+  marginRight?: number;
+  webhookUrl?: string;
   createdAt: Date;
   assignedAt?: Date;
   completedAt?: Date;
@@ -39,6 +45,10 @@ export interface Printer {
   capabilities: PrinterCapabilities;
   virtual_printer_enabled?: boolean;
   tags?: string;
+  default_paper_size?: string;
+  default_orientation?: string;
+  default_color_mode?: string;
+  default_duplex?: string;
   lastSeen: Date;
   createdAt: Date;
 }
@@ -77,6 +87,7 @@ export interface Client {
   passwordHash: string;
   displayName: string;
   email?: string;
+  role: 'admin' | 'user';
   createdAt: Date;
 }
 
@@ -87,9 +98,49 @@ export interface CreatePrintJobRequest {
   duplex?: 'none' | 'short' | 'long';
   orientation?: 'portrait' | 'landscape';
   paperSize?: string;
+  quality?: string;
+  marginTop?: number;
+  marginBottom?: number;
+  marginLeft?: number;
+  marginRight?: number;
+  webhookUrl?: string;
+}
+
+export interface CreatePrintJobFromUrlRequest extends CreatePrintJobRequest {
+  url: string;
+  headers?: Record<string, string>;
 }
 
 export interface UpdatePrintJobRequest {
   status: PrintJobStatus;
   errorMessage?: string;
+}
+
+export interface Webhook {
+  id: string;
+  clientId: string;
+  url: string;
+  events: WebhookEvent[];
+  secret?: string;
+  active: boolean;
+  createdAt: Date;
+  lastTriggeredAt?: Date;
+}
+
+export enum WebhookEvent {
+  JOB_ASSIGNED = 'job.assigned',
+  JOB_PRINTING = 'job.printing',
+  JOB_COMPLETED = 'job.completed',
+  JOB_FAILED = 'job.failed',
+  JOB_CANCELLED = 'job.cancelled'
+}
+
+export interface ApiKey {
+  id: string;
+  clientId: string;
+  key: string;
+  name: string;
+  createdAt: Date;
+  expiresAt?: Date;
+  lastUsedAt?: Date;
 }

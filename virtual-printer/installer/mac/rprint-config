@@ -1,0 +1,81 @@
+#!/bin/bash
+#
+# RPrint Configuration Helper
+# Interactive GUI dialog for configuring RPrint virtual printer
+#
+
+CONFIG_DIR="/etc/rprint"
+CONFIG_FILE="$CONFIG_DIR/config"
+
+# Create config directory if it doesn't exist
+if [ ! -d "$CONFIG_DIR" ]; then
+    sudo mkdir -p "$CONFIG_DIR"
+fi
+
+# Get current configuration if exists
+CURRENT_SERVER=""
+CURRENT_TOKEN=""
+CURRENT_PRINTER=""
+
+if [ -f "$CONFIG_FILE" ]; then
+    source "$CONFIG_FILE"
+    CURRENT_SERVER="$RPRINT_SERVER_URL"
+    CURRENT_TOKEN="$RPRINT_AUTH_TOKEN"
+    CURRENT_PRINTER="$RPRINT_DEFAULT_PRINTER_ID"
+fi
+
+# Function to show dialog and get input
+show_dialog() {
+    local prompt="$1"
+    local default="$2"
+    local result
+
+    result=$(osascript -e "text returned of (display dialog \"$prompt\" default answer \"$default\" with title \"RPrint Configuration\" buttons {\"Cancel\", \"OK\"} default button \"OK\")" 2>/dev/null)
+
+    echo "$result"
+}
+
+# Welcome message
+osascript -e 'display dialog "Welcome to RPrint Configuration!\n\nYou will need:\n1. Server URL (e.g., https://growingsoft.net)\n2. Authentication Token (get from server/api-token)\n3. Printer ID (optional, get from server Admin → Printers)" with title "RPrint Configuration" buttons {"Cancel", "Continue"} default button "Continue"' >/dev/null 2>&1
+
+if [ $? -ne 0 ]; then
+    echo "Configuration cancelled."
+    exit 1
+fi
+
+# Get Server URL
+SERVER_URL=$(show_dialog "Enter your RPrint server URL:" "${CURRENT_SERVER:-https://growingsoft.net}")
+if [ -z "$SERVER_URL" ]; then
+    echo "Configuration cancelled."
+    exit 1
+fi
+
+# Get Authentication Token
+AUTH_TOKEN=$(show_dialog "Enter your authentication token:\n\nGet it from:\n$SERVER_URL/api-token" "$CURRENT_TOKEN")
+if [ -z "$AUTH_TOKEN" ]; then
+    echo "Configuration cancelled."
+    exit 1
+fi
+
+# Get Printer ID (optional)
+PRINTER_ID=$(show_dialog "Enter your default printer ID (optional):\n\nLeave empty to select printer when printing.\nGet ID from: $SERVER_URL/admin/printers" "$CURRENT_PRINTER")
+
+# Save configuration
+CONFIG_CONTENT="# RPrint Virtual Printer Configuration
+# Generated: $(date)
+
+RPRINT_SERVER_URL=\"$SERVER_URL\"
+RPRINT_AUTH_TOKEN=\"$AUTH_TOKEN\"
+RPRINT_DEFAULT_PRINTER_ID=\"$PRINTER_ID\"
+"
+
+# Write config file (requires sudo)
+echo "$CONFIG_CONTENT" | sudo tee "$CONFIG_FILE" > /dev/null
+sudo chmod 600 "$CONFIG_FILE"
+
+# Success message
+osascript -e 'display dialog "Configuration saved successfully!\n\nYou can now print to RPrint from any application." with title "RPrint Configuration" buttons {"OK"} default button "OK"' >/dev/null 2>&1
+
+echo "✓ Configuration saved to $CONFIG_FILE"
+echo "✓ Server: $SERVER_URL"
+echo "✓ You can now print using the RPrint virtual printer!"

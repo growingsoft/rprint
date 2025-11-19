@@ -12,6 +12,19 @@ export class PrinterController {
     }
   }
 
+  static async removeDuplicates(req: AuthRequest, res: Response) {
+    try {
+      const { workerId } = req.params;
+      const deletedCount = await PrinterModel.removeDuplicates(workerId);
+      res.json({
+        message: `Removed ${deletedCount} duplicate printers`,
+        deletedCount
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
   static async get(req: AuthRequest, res: Response) {
     try {
       const { id } = req.params;
@@ -77,11 +90,11 @@ export class PrinterController {
     }
   }
 
-  // Update printer settings (virtual_printer_enabled, tags)
+  // Update printer settings (virtual_printer_enabled, tags, defaults)
   static async updateSettings(req: AuthRequest, res: Response) {
     try {
       const { id } = req.params;
-      const { virtual_printer_enabled, tags } = req.body;
+      const { virtual_printer_enabled, tags, default_paper_size, default_orientation, default_color_mode, default_duplex } = req.body;
 
       const printer = await PrinterModel.findById(id);
       if (!printer) {
@@ -90,7 +103,11 @@ export class PrinterController {
 
       await PrinterModel.updateSettings(id, {
         virtual_printer_enabled: virtual_printer_enabled !== undefined ? virtual_printer_enabled : printer.virtual_printer_enabled,
-        tags: tags !== undefined ? tags : printer.tags
+        tags: tags !== undefined ? tags : printer.tags,
+        default_paper_size: default_paper_size !== undefined ? default_paper_size : printer.default_paper_size,
+        default_orientation: default_orientation !== undefined ? default_orientation : printer.default_orientation,
+        default_color_mode: default_color_mode !== undefined ? default_color_mode : printer.default_color_mode,
+        default_duplex: default_duplex !== undefined ? default_duplex : printer.default_duplex
       });
 
       const updated = await PrinterModel.findById(id);

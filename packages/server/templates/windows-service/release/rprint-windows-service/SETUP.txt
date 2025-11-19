@@ -1,0 +1,25 @@
+RPrint Windows Service - Installation Instructions
+===================================================
+
+1. Extract this ZIP file to a permanent location (e.g., C:\RPrint)
+
+2. Download your .env configuration file from the RPrint admin panel:
+   - Go to https://growingsoft.net/admin/workers
+   - Click "Download .env" for your print server
+   - Save the .env file to this directory
+
+3. Run the installer as Administrator:
+   - Right-click INSTALL.bat
+   - Select "Run as administrator"
+
+   OR
+
+   - Open PowerShell as Administrator
+   - Run: .\INSTALL.ps1
+
+4. The service will start automatically and sync your printers
+
+5. Check the logs directory for any issues
+
+For troubleshooting, see TROUBLESHOOTING.md
+

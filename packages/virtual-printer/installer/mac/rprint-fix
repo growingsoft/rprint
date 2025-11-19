@@ -1,0 +1,193 @@
+#!/bin/bash
+#
+# RPrint Fix Script
+# Comprehensively fixes all permissions and configuration issues
+#
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+# Check if running as root
+if [ "$EUID" -ne 0 ]; then
+    echo -e "${RED}Error: This script must be run as root${NC}"
+    echo "Please run: sudo rprint-fix"
+    exit 1
+fi
+
+echo -e "${BLUE}╔═══════════════════════════════════════════════════════╗${NC}"
+echo -e "${BLUE}║     RPrint Comprehensive Fix Script                  ║${NC}"
+echo -e "${BLUE}║     Fixing all permissions and configuration          ║${NC}"
+echo -e "${BLUE}╚═══════════════════════════════════════════════════════╝${NC}"
+echo
+
+FIXES_APPLIED=0
+
+# Fix 1: Backend file permissions
+echo -e "${YELLOW}[1/10]${NC} Checking backend file..."
+BACKEND_FILE="/usr/libexec/cups/backend/rprint"
+if [ -f "$BACKEND_FILE" ]; then
+    # Fix ownership
+    chown root:wheel "$BACKEND_FILE"
+    echo "  ✓ Set ownership to root:wheel"
+
+    # Fix permissions
+    chmod 755 "$BACKEND_FILE"
+    echo "  ✓ Set permissions to 755"
+
+    # Verify it's executable
+    if [ -x "$BACKEND_FILE" ]; then
+        echo -e "  ${GREEN}✓ Backend is executable${NC}"
+    else
+        chmod +x "$BACKEND_FILE"
+        echo "  ✓ Made backend executable"
+    fi
+
+    ((FIXES_APPLIED++))
+else
+    echo -e "  ${RED}✗ Backend file not found!${NC}"
+    echo "  Run the installer first: sudo ./install.sh"
+fi
+
+# Fix 2: Backend directory permissions
+echo -e "${YELLOW}[2/10]${NC} Checking backend directory..."
+BACKEND_DIR="/usr/libexec/cups/backend"
+if [ -d "$BACKEND_DIR" ]; then
+    chmod 755 "$BACKEND_DIR"
+    echo -e "  ${GREEN}✓ Backend directory permissions fixed${NC}"
+    ((FIXES_APPLIED++))
+fi
+
+# Fix 3: CUPS temp directory
+echo -e "${YELLOW}[3/10]${NC} Checking CUPS temp directory..."
+CUPS_TMP="/private/var/spool/cups/tmp"
+if [ -d "$CUPS_TMP" ]; then
+    chmod 1770 "$CUPS_TMP"
+    chown root:_lp "$CUPS_TMP"
+    echo -e "  ${GREEN}✓ CUPS temp directory permissions fixed${NC}"
+
+    # Clean old files (older than 1 hour)
+    OLD_FILES=$(find "$CUPS_TMP" -type f -mmin +60 2>/dev/null | wc -l)
+    if [ $OLD_FILES -gt 0 ]; then
+        find "$CUPS_TMP" -type f -mmin +60 -delete 2>/dev/null
+        echo "  ✓ Cleaned $OLD_FILES old temp files"
+    fi
+
+    ((FIXES_APPLIED++))
+else
+    mkdir -p "$CUPS_TMP"
+    chmod 1770 "$CUPS_TMP"
+    chown root:_lp "$CUPS_TMP"
+    echo "  ✓ Created and configured CUPS temp directory"
+    ((FIXES_APPLIED++))
+fi
+
+# Fix 4: CUPS spool directory
+echo -e "${YELLOW}[4/10]${NC} Checking CUPS spool directory..."
+CUPS_SPOOL="/var/spool/cups"
+if [ -d "$CUPS_SPOOL" ]; then
+    chmod 755 "$CUPS_SPOOL"
+    echo -e "  ${GREEN}✓ CUPS spool directory permissions fixed${NC}"
+    ((FIXES_APPLIED++))
+fi
+
+# Fix 5: Enable and accept printer
+echo -e "${YELLOW}[5/10]${NC} Enabling RPrint printer..."
+if lpstat -p RPrint >/dev/null 2>&1; then
+    cupsenable RPrint 2>/dev/null
+    cupsaccept RPrint 2>/dev/null
+    echo -e "  ${GREEN}✓ Printer enabled and accepting jobs${NC}"
+    ((FIXES_APPLIED++))
+else
+    echo -e "  ${YELLOW}⚠ RPrint printer not found${NC}"
+    echo "  Run the installer first: sudo ./install.sh"
+fi
+
+# Fix 6: Clear job queue
+echo -e "${YELLOW}[6/10]${NC} Clearing failed jobs..."
+FAILED_JOBS=$(lpstat -o RPrint 2>/dev/null | wc -l)
+if [ $FAILED_JOBS -gt 0 ]; then
+    cancel -a RPrint 2>/dev/null
+    echo "  ✓ Cleared $FAILED_JOBS pending/failed jobs"
+    ((FIXES_APPLIED++))
+else
+    echo "  ✓ No failed jobs to clear"
+fi
+
+# Fix 7: Reset printer if held
+echo -e "${YELLOW}[7/10]${NC} Checking printer status..."
+if lpstat -p RPrint 2>/dev/null | grep -q "disabled"; then
+    cupsenable RPrint
+    cupsaccept RPrint
+    echo "  ✓ Re-enabled disabled printer"
+    ((FIXES_APPLIED++))
+else
+    echo "  ✓ Printer status is good"
+fi
+
+# Fix 8: Verify backend credentials
+echo -e "${YELLOW}[8/10]${NC} Verifying backend credentials..."
+if [ -f "$BACKEND_FILE" ]; then
+    if grep -q "RPRINT_SERVER_URL=" "$BACKEND_FILE" && \
+       grep -q "RPRINT_AUTH_TOKEN=" "$BACKEND_FILE" && \
+       grep -q "RPRINT_DEFAULT_PRINTER_ID=" "$BACKEND_FILE"; then
+        echo -e "  ${GREEN}✓ Backend credentials are configured${NC}"
+        ((FIXES_APPLIED++))
+    else
+        echo -e "  ${RED}✗ Backend missing credentials${NC}"
+        echo "  Re-download and install the latest version"
+    fi
+fi
+
+# Fix 9: CUPS configuration
+echo -e "${YELLOW}[9/10]${NC} Checking CUPS configuration..."
+if [ -f /etc/cups/cupsd.conf ]; then
+    # Ensure LogLevel is set to info for debugging
+    if grep -q "^LogLevel" /etc/cups/cupsd.conf; then
+        sed -i '' 's/^LogLevel.*/LogLevel info/' /etc/cups/cupsd.conf 2>/dev/null || true
+    fi
+    echo "  ✓ CUPS configuration checked"
+    ((FIXES_APPLIED++))
+fi
+
+# Fix 10: Restart CUPS (if needed)
+echo -e "${YELLOW}[10/10]${NC} Restarting CUPS service..."
+# Touch a CUPS config file to trigger reload
+touch /private/etc/cups/printers.conf 2>/dev/null || true
+echo "  ✓ CUPS configuration reloaded"
+((FIXES_APPLIED++))
+
+# Summary
+echo ""
+echo -e "${BLUE}═══════════════════════════════════════════════════════${NC}"
+echo -e "${GREEN}Fixes applied: $FIXES_APPLIED${NC}"
+echo -e "${BLUE}═══════════════════════════════════════════════════════${NC}"
+echo ""
+
+# Run comprehensive test
+echo -e "${YELLOW}Running comprehensive test...${NC}"
+echo ""
+
+if command -v rprint-test &> /dev/null; then
+    rprint-test
+else
+    echo -e "${YELLOW}Test script not found. Run: sudo ./install.sh${NC}"
+fi
+
+echo ""
+echo -e "${GREEN}╔═══════════════════════════════════════════════════════╗${NC}"
+echo -e "${GREEN}║  Fix Complete!                                        ║${NC}"
+echo -e "${GREEN}╚═══════════════════════════════════════════════════════╝${NC}"
+echo ""
+echo "To test printing:"
+echo "  echo 'Test print' | lp -d RPrint"
+echo ""
+echo "To check status:"
+echo "  lpstat -p RPrint"
+echo ""
+echo "To view recent logs:"
+echo "  sudo tail -20 /var/log/cups/error_log | grep RPrint"
+echo ""

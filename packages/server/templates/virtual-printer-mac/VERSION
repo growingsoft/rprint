@@ -1,0 +1,26 @@
+╔═══════════════════════════════════════════════════════════════╗
+║          RPrint Virtual Printer for macOS                     ║
+║                    Version Information                        ║
+╚═══════════════════════════════════════════════════════════════╝
+
+Version: 2.1.0
+Build Date: 2025-11-18 13:00 PST
+
+COMPLETE END-TO-END FIX:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✓ Mac: rprint-fix cleans old CUPS temp files
+✓ Mac: Backend uploads PostScript files successfully
+✓ Server: Accepts PostScript (application/postscript) files
+✓ Windows: NEW - Ghostscript conversion for PostScript→PDF
+✓ Windows: Service now prints PostScript files correctly
+
+WINDOWS SERVICE UPDATE REQUIRED:
+Download new Windows service: https://growingsoft.net/downloads/rprint-windows-service.zip
+
+USAGE:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Update and test:
+  cd ~/Downloads/mac
+  sudo ./auto-update.sh

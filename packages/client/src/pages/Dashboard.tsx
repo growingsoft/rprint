@@ -281,6 +281,26 @@ startxref
     <div className="app">
       <header className="header">
         <h1>RPrint - Remote Printing</h1>
+        <nav className="header-nav">
+          <button className="nav-btn" onClick={() => navigate('/')}>
+            🖨️ Print
+          </button>
+          <button className="nav-btn" onClick={() => navigate('/admin/workers')}>
+            🖥️ Servers
+          </button>
+          <button className="nav-btn" onClick={() => navigate('/admin/api-keys')}>
+            🔑 API Keys
+          </button>
+          <button className="nav-btn" onClick={() => navigate('/admin/printers')}>
+            ⚙️ Printers
+          </button>
+          <button className="nav-btn" onClick={() => navigate('/downloads')}>
+            📥 Downloads
+          </button>
+          <button className="nav-btn" onClick={() => navigate('/api-token')}>
+            🎫 My Token
+          </button>
+        </nav>
         <div className="header-actions">
           {client && (
             <div className="user-info">

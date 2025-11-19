@@ -1,0 +1,183 @@
+#!/bin/bash
+#
+# RPrint Virtual Printer - CUPS Backend for macOS
+# This script receives print jobs and uploads them to the RPrint server
+#
+
+# CUPS backend interface expects specific exit codes and behavior
+# See: https://www.cups.org/doc/man-backend.html
+
+# Configuration file location
+CONFIG_FILE="/etc/rprint/config"
+
+# Function to log messages
+log_message() {
+    echo "INFO: $1" >&2
+}
+
+log_error() {
+    echo "ERROR: $1" >&2
+}
+
+# Load configuration - auto-configure on first use
+if [ ! -f "$CONFIG_FILE" ]; then
+    log_message "Configuration not found. Opening configuration dialog..."
+
+    # Run configuration helper
+    if command -v rprint-config &> /dev/null; then
+        /usr/local/bin/rprint-config
+
+        # Check if config was created
+        if [ ! -f "$CONFIG_FILE" ]; then
+            log_error "Configuration cancelled or failed"
+            exit 1
+        fi
+    else
+        log_error "Configuration file not found and rprint-config not available"
+        log_error "Please run: rprint-config"
+        exit 1
+    fi
+fi
+
+source "$CONFIG_FILE"
+
+# Validate configuration
+if [ -z "$RPRINT_SERVER_URL" ] || [ -z "$RPRINT_AUTH_TOKEN" ]; then
+    log_error "Invalid configuration. Please run: rprint-config"
+    exit 1
+fi
+
+# When called with no arguments, CUPS is discovering backends
+if [ $# -eq 0 ]; then
+    # Return: network rprint "Unknown" "RPrint Virtual Printer"
+    echo "network rprint \"Unknown\" \"RPrint Virtual Printer\""
+    exit 0
+fi
+
+# When called with 5 or 6 arguments, we're printing
+# Arguments: job-id user title copies options [file]
+if [ $# -lt 5 ]; then
+    log_error "Invalid number of arguments: $#"
+    exit 1
+fi
+
+JOB_ID="$1"
+USER="$2"
+TITLE="$3"
+COPIES="$4"
+OPTIONS="$5"
+FILE="$6"
+
+log_message "Starting print job: ID=$JOB_ID, User=$USER, Title=$TITLE, Copies=$COPIES"
+
+# Create temporary file if input is from stdin
+if [ -z "$FILE" ] || [ "$FILE" = "-" ]; then
+    TEMP_FILE=$(mktemp /tmp/rprint-job.XXXXXX)
+    cat > "$TEMP_FILE"
+    FILE="$TEMP_FILE"
+    log_message "Saved print data to temporary file: $FILE"
+fi
+
+# Determine file type
+FILE_TYPE=$(file -b --mime-type "$FILE")
+log_message "Detected file type: $FILE_TYPE"
+
+# Parse print options
+COLOR_MODE="color"
+DUPLEX="none"
+ORIENTATION="portrait"
+PAPER_SIZE="Letter"
+
+# Parse CUPS options (format: key=value key=value)
+IFS=' ' read -ra OPTS <<< "$OPTIONS"
+for opt in "${OPTS[@]}"; do
+    case "$opt" in
+        ColorModel=*)
+            value="${opt#*=}"
+            if [[ "$value" == *"Gray"* ]] || [[ "$value" == *"Mono"* ]]; then
+                COLOR_MODE="grayscale"
+            fi
+            ;;
+        Duplex=*)
+            value="${opt#*=}"
+            case "$value" in
+                DuplexNoTumble) DUPLEX="long" ;;
+                DuplexTumble) DUPLEX="short" ;;
+            esac
+            ;;
+        orientation-requested=*)
+            value="${opt#*=}"
+            if [ "$value" = "4" ]; then
+                ORIENTATION="landscape"
+            fi
+            ;;
+        PageSize=*|media=*)
+            value="${opt#*=}"
+            # Extract paper size
+            PAPER_SIZE="${value%%_*}"
+            ;;
+    esac
+done
+
+log_message "Print options: Color=$COLOR_MODE, Duplex=$DUPLEX, Orientation=$ORIENTATION, Paper=$PAPER_SIZE"
+
+# Get printer ID from device URI or use default
+# CUPS passes device URI in DEVICE_URI environment variable
+PRINTER_ID="${RPRINT_DEFAULT_PRINTER_ID}"
+if [ -n "$DEVICE_URI" ]; then
+    # Extract printer ID from URI if present (format: rprint://printer-id)
+    if [[ "$DEVICE_URI" =~ rprint://(.+) ]]; then
+        PRINTER_ID="${BASH_REMATCH[1]}"
+    fi
+fi
+
+log_message "Using printer ID: $PRINTER_ID"
+
+# Determine filename
+if [ -n "$TITLE" ] && [ "$TITLE" != "-" ]; then
+    FILENAME="$TITLE"
+else
+    FILENAME="Print Job $JOB_ID"
+fi
+
+# Add appropriate extension based on file type
+case "$FILE_TYPE" in
+    application/pdf) FILENAME="$FILENAME.pdf" ;;
+    application/postscript) FILENAME="$FILENAME.ps" ;;
+    image/*) FILENAME="$FILENAME.${FILE_TYPE#image/}" ;;
+    text/plain) FILENAME="$FILENAME.txt" ;;
+esac
+
+log_message "Uploading to RPrint server: $RPRINT_SERVER_URL"
+
+# Upload to RPrint server using curl
+RESPONSE=$(curl -s -w "\n%{http_code}" \
+    -X POST \
+    -H "Authorization: Bearer $RPRINT_AUTH_TOKEN" \
+    -F "file=@$FILE;filename=$FILENAME" \
+    -F "printerId=$PRINTER_ID" \
+    -F "copies=$COPIES" \
+    -F "colorMode=$COLOR_MODE" \
+    -F "duplex=$DUPLEX" \
+    -F "orientation=$ORIENTATION" \
+    -F "paperSize=$PAPER_SIZE" \
+    "$RPRINT_SERVER_URL/api/jobs")
+
+HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+BODY=$(echo "$RESPONSE" | sed '$d')
+
+# Clean up temporary file if we created one
+if [ -n "$TEMP_FILE" ]; then
+    rm -f "$TEMP_FILE"
+fi
+
+# Check response
+if [ "$HTTP_CODE" -eq 201 ] || [ "$HTTP_CODE" -eq 200 ]; then
+    log_message "Print job uploaded successfully"
+    log_message "Response: $BODY"
+    exit 0
+else
+    log_error "Failed to upload print job. HTTP Status: $HTTP_CODE"
+    log_error "Response: $BODY"
+    exit 1
+fi

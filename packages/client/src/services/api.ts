@@ -148,6 +148,68 @@ class ApiService {
     await this.client.delete(`/jobs/${id}`);
   }
 
+  // API Key endpoints
+  async getApiKeys(): Promise<any[]> {
+    const response = await this.client.get('/api-keys');
+    return response.data;
+  }
+
+  async createApiKey(name: string, expiresInDays?: number): Promise<any> {
+    const response = await this.client.post('/api-keys', {
+      name,
+      expiresInDays: expiresInDays || 0
+    });
+    return response.data;
+  }
+
+  async deleteApiKey(id: string): Promise<void> {
+    await this.client.delete(`/api-keys/${id}`);
+  }
+
+  // Worker/Print Server endpoints
+  async getWorkers(): Promise<any[]> {
+    const response = await this.client.get('/workers');
+    return response.data;
+  }
+
+  async registerWorker(name: string): Promise<any> {
+    const response = await this.client.post('/auth/register-worker', { name });
+    return response.data;
+  }
+
+  async deleteWorker(id: string): Promise<void> {
+    await this.client.delete(`/workers/${id}`);
+  }
+
+  async downloadWorkerEnv(id: string, name: string): Promise<void> {
+    const response = await this.client.get(`/workers/${id}/env`, {
+      responseType: 'blob'
+    });
+
+    // Create a blob URL and trigger download
+    const blob = new Blob([response.data], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${name}.env`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  }
+
+  // Printer management endpoints
+  async getAllPrinters(workerId?: string): Promise<Printer[]> {
+    const params: any = {};
+    if (workerId) params.workerId = workerId;
+    const response = await this.client.get('/printers', { params });
+    return response.data;
+  }
+
+  async updatePrinterSettings(printerId: string, settings: any): Promise<void> {
+    await this.client.put(`/printers/${printerId}`, settings);
+  }
+
   isAuthenticated(): boolean {
     return this.token !== null;
   }

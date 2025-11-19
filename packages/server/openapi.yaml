@@ -1,0 +1,807 @@
+openapi: 3.0.3
+info:
+  title: RPrint API
+  version: 1.0.0
+  description: |
+    RPrint Remote Printing API - Send print jobs to remote printers from any application.
+
+    ## Authentication
+
+    RPrint supports two authentication methods:
+
+    1. **JWT Token (Client Authentication)** - For user-based applications
+       - Register a client account
+       - Login to receive a JWT token
+       - Include token in `Authorization: Bearer <token>` header
+
+    2. **API Key (Server-to-Server)** - For backend integrations
+       - Contact admin to get a permanent API key
+       - Include key in `X-API-Key: <key>` header
+       - Recommended for PHP/AWS integrations
+
+    ## Quick Start for PHP Integration
+
+    ```php
+    // 1. Login and get JWT token
+    $response = httpPost('https://growingsoft.net/api/auth/login', [
+        'username' => 'your-app',
+        'password' => 'your-password'
+    ]);
+    $token = $response['token'];
+
+    // 2. Get available printers
+    $printers = httpGet('https://growingsoft.net/api/printers', [
+        'Authorization: Bearer ' . $token
+    ]);
+
+    // 3. Submit print job
+    $job = httpPostFile('https://growingsoft.net/api/jobs',
+        '/path/to/document.pdf',
+        ['printerId' => $printers[0]['id']],
+        ['Authorization: Bearer ' . $token]
+    );
+
+    // 4. Check job status
+    $status = httpGet('https://growingsoft.net/api/jobs/' . $job['id'], [
+        'Authorization: Bearer ' . $token
+    ]);
+    ```
+
+  contact:
+    name: RPrint Support
+    url: https://growingsoft.net
+
+servers:
+  - url: https://growingsoft.net/api
+    description: Production server
+  - url: http://localhost:3000/api
+    description: Development server
+
+tags:
+  - name: Authentication
+    description: User and API key authentication
+  - name: Print Jobs
+    description: Submit and manage print jobs
+  - name: Printers
+    description: Query available printers
+  - name: Webhooks
+    description: Configure status notifications
+
+paths:
+  /auth/register:
+    post:
+      tags: [Authentication]
+      summary: Register a new client account
+      description: Create a new client account for JWT-based authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username:
+                  type: string
+                  minLength: 3
+                  maxLength: 50
+                  example: my-php-app
+                password:
+                  type: string
+                  minLength: 6
+                  example: secure-password-123
+                displayName:
+                  type: string
+                  example: My PHP Application
+                email:
+                  type: string
+                  format: email
+                  example: admin@myapp.com
+      responses:
+        '201':
+          description: Client registered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  username:
+                    type: string
+                  displayName:
+                    type: string
+                  createdAt:
+                    type: string
+                    format: date-time
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Username already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/login:
+    post:
+      tags: [Authentication]
+      summary: Login and get JWT token
+      description: Authenticate with username/password and receive a JWT token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username:
+                  type: string
+                  example: my-php-app
+                password:
+                  type: string
+                  example: secure-password-123
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    description: JWT token valid for 7 days
+                    example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                  client:
+                    $ref: '#/components/schemas/Client'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/api-key:
+    post:
+      tags: [Authentication]
+      summary: Generate permanent API key
+      description: Generate a permanent API key for server-to-server authentication (admin only)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                  description: Descriptive name for this API key
+                  example: AWS PHP Application
+                expiresInDays:
+                  type: integer
+                  description: Number of days until key expires (0 = never)
+                  default: 0
+                  example: 365
+      responses:
+        '201':
+          description: API key created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  apiKey:
+                    type: string
+                    description: Store this securely - it won't be shown again
+                    example: rprint_live_1234567890abcdef
+                  id:
+                    type: string
+                  name:
+                    type: string
+                  createdAt:
+                    type: string
+                    format: date-time
+                  expiresAt:
+                    type: string
+                    format: date-time
+                    nullable: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /printers:
+    get:
+      tags: [Printers]
+      summary: List all available printers
+      description: Get all online printers with their capabilities
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
+      parameters:
+        - name: status
+          in: query
+          description: Filter by printer status
+          schema:
+            type: string
+            enum: [online, offline, busy, error]
+        - name: workerId
+          in: query
+          description: Filter by worker ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of printers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Printer'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /jobs:
+    get:
+      tags: [Print Jobs]
+      summary: List print jobs
+      description: Get all print jobs for authenticated client
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
+      parameters:
+        - name: status
+          in: query
+          description: Filter by job status
+          schema:
+            type: string
+            enum: [pending, assigned, printing, completed, failed, cancelled]
+        - name: limit
+          in: query
+          description: Maximum number of jobs to return
+          schema:
+            type: integer
+            default: 50
+            maximum: 100
+        - name: offset
+          in: query
+          description: Number of jobs to skip
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: List of print jobs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jobs:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PrintJob'
+                  total:
+                    type: integer
+                  limit:
+                    type: integer
+                  offset:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Print Jobs]
+      summary: Create print job with file upload
+      description: Upload a file and create a print job
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, printerId]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: File to print (PDF, Word, Excel, Image, Text)
+                printerId:
+                  type: string
+                  format: uuid
+                  description: ID of printer to use
+                copies:
+                  type: integer
+                  minimum: 1
+                  maximum: 99
+                  default: 1
+                colorMode:
+                  type: string
+                  enum: [color, grayscale]
+                  default: color
+                duplex:
+                  type: string
+                  enum: [none, short, long]
+                  default: none
+                  description: |
+                    - none: Single-sided printing
+                    - short: Duplex on short edge (flip on short side)
+                    - long: Duplex on long edge (flip on long side)
+                orientation:
+                  type: string
+                  enum: [portrait, landscape]
+                  default: portrait
+                paperSize:
+                  type: string
+                  default: A4
+                  example: A4
+                  description: Paper size (A4, Letter, Legal, etc.)
+                webhookUrl:
+                  type: string
+                  format: uri
+                  description: URL to receive status updates (optional)
+                  example: https://myapp.com/api/print-callback
+            encoding:
+              file:
+                contentType: application/pdf, application/msword, application/vnd.openxmlformats-officedocument.wordprocessingml.document, image/jpeg, image/png
+      responses:
+        '201':
+          description: Print job created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrintJob'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '413':
+          description: File too large (max 10MB)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /jobs/print-url:
+    post:
+      tags: [Print Jobs]
+      summary: Create print job from URL
+      description: Download a file from URL and create a print job
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url, printerId]
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  description: URL of file to print
+                  example: https://myapp.com/documents/invoice-12345.pdf
+                printerId:
+                  type: string
+                  format: uuid
+                copies:
+                  type: integer
+                  minimum: 1
+                  maximum: 99
+                  default: 1
+                colorMode:
+                  type: string
+                  enum: [color, grayscale]
+                  default: color
+                duplex:
+                  type: string
+                  enum: [none, short, long]
+                  default: none
+                orientation:
+                  type: string
+                  enum: [portrait, landscape]
+                  default: portrait
+                paperSize:
+                  type: string
+                  default: A4
+                webhookUrl:
+                  type: string
+                  format: uri
+                  description: URL to receive status updates
+                headers:
+                  type: object
+                  description: Optional HTTP headers for fetching the URL
+                  additionalProperties:
+                    type: string
+                  example:
+                    Authorization: Bearer token123
+      responses:
+        '201':
+          description: Print job created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrintJob'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /jobs/{id}:
+    get:
+      tags: [Print Jobs]
+      summary: Get print job details
+      description: Get detailed information about a specific print job
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Print job details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrintJob'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Print Jobs]
+      summary: Cancel print job
+      description: Cancel a pending or assigned print job
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Job cancelled successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Job cancelled successfully
+                  job:
+                    $ref: '#/components/schemas/PrintJob'
+        '400':
+          description: Job cannot be cancelled (already printing or completed)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /webhooks:
+    get:
+      tags: [Webhooks]
+      summary: List configured webhooks
+      description: Get all webhooks configured for the authenticated client
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: List of webhooks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Webhook'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Webhooks]
+      summary: Create webhook
+      description: Configure a webhook to receive print job status updates
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url, events]
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  description: Webhook endpoint URL
+                  example: https://myapp.com/api/print-webhook
+                events:
+                  type: array
+                  description: Events to trigger webhook
+                  items:
+                    type: string
+                    enum: [job.assigned, job.printing, job.completed, job.failed, job.cancelled]
+                  example: [job.completed, job.failed]
+                secret:
+                  type: string
+                  description: Secret for HMAC signature verification
+                  example: webhook-secret-123
+                active:
+                  type: boolean
+                  default: true
+      responses:
+        '201':
+          description: Webhook created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Webhook'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /webhooks/{id}:
+    delete:
+      tags: [Webhooks]
+      summary: Delete webhook
+      description: Remove a configured webhook
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Webhook deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from /auth/login endpoint
+
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: Permanent API key for server-to-server authentication
+
+  schemas:
+    Client:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        displayName:
+          type: string
+        email:
+          type: string
+          format: email
+        createdAt:
+          type: string
+          format: date-time
+
+    Printer:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        workerId:
+          type: string
+          format: uuid
+        name:
+          type: string
+          description: System printer name
+          example: HP_LaserJet_Pro
+        displayName:
+          type: string
+          description: Friendly printer name
+          example: HP LaserJet Pro (Office)
+        isDefault:
+          type: boolean
+        status:
+          type: string
+          enum: [online, offline, busy, error]
+        description:
+          type: string
+        location:
+          type: string
+          example: Main Office - Floor 2
+        capabilities:
+          type: object
+          properties:
+            color:
+              type: boolean
+              description: Supports color printing
+            duplex:
+              type: boolean
+              description: Supports duplex (double-sided) printing
+            paperSizes:
+              type: array
+              items:
+                type: string
+              example: [A4, Letter, Legal]
+            maxCopies:
+              type: integer
+              example: 99
+        lastSeen:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+
+    PrintJob:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        clientId:
+          type: string
+          format: uuid
+        printerId:
+          type: string
+          format: uuid
+        fileName:
+          type: string
+          example: invoice-12345.pdf
+        fileSize:
+          type: integer
+          description: File size in bytes
+          example: 524288
+        mimeType:
+          type: string
+          example: application/pdf
+        status:
+          type: string
+          enum: [pending, assigned, printing, completed, failed, cancelled]
+        copies:
+          type: integer
+          example: 1
+        colorMode:
+          type: string
+          enum: [color, grayscale]
+        duplex:
+          type: string
+          enum: [none, short, long]
+        orientation:
+          type: string
+          enum: [portrait, landscape]
+        paperSize:
+          type: string
+          example: A4
+        createdAt:
+          type: string
+          format: date-time
+        assignedAt:
+          type: string
+          format: date-time
+          nullable: true
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        errorMessage:
+          type: string
+          nullable: true
+
+    Webhook:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        clientId:
+          type: string
+          format: uuid
+        url:
+          type: string
+          format: uri
+        events:
+          type: array
+          items:
+            type: string
+        secret:
+          type: string
+          description: For HMAC signature verification
+        active:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        lastTriggeredAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+        details:
+          type: object
+          description: Additional error details
+          additionalProperties: true
+
+  responses:
+    BadRequest:
+      description: Bad request - Invalid input
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: Invalid request parameters
+            details:
+              printerId: Printer ID is required
+
+    Unauthorized:
+      description: Unauthorized - Invalid or missing credentials
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: Invalid or expired token
+
+    Forbidden:
+      description: Forbidden - Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: Insufficient permissions
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: Resource not found

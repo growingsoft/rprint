@@ -92,6 +92,14 @@ export const ClientDownload: React.FC = () => {
             <p style={{ textAlign: 'center', fontSize: '0.9rem', marginTop: '1rem', opacity: 0.8 }}>
               Adds "RPrint Virtual Printer" to your system. Print jobs are automatically uploaded.
             </p>
+            <div style={{ textAlign: 'center', marginTop: '1rem', display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+              <a href="/api-token" style={{ color: 'white', textDecoration: 'underline', fontWeight: 'bold' }}>
+                🔑 Get Your API Token
+              </a>
+              <a href="/mac-installation-guide.html" target="_blank" style={{ color: 'white', textDecoration: 'underline' }}>
+                📖 Mac Installation Guide
+              </a>
+            </div>
           </div>
         </div>
 
@@ -103,6 +111,69 @@ export const ClientDownload: React.FC = () => {
             <li>Select a printer and upload your document - that's it!</li>
           </ol>
         </div>
+      </div>
+
+      {/* Diagnostics Tool */}
+      <div className="option-card">
+        <div className="option-icon">🔧</div>
+        <h2>Windows Worker Diagnostics Tool</h2>
+        <p className="option-description">
+          Test your Windows worker setup before running - verify configuration, connectivity, and printing
+        </p>
+
+        <div className="features-list" style={{ background: '#f8f9fa', color: '#2c3e50' }}>
+          <h3 style={{ color: '#2c3e50' }}>What it checks:</h3>
+          <ul style={{ color: '#495057' }}>
+            <li>✓ Environment configuration (.env file)</li>
+            <li>✓ Server connectivity and reachability</li>
+            <li>✓ API key authentication</li>
+            <li>✓ Local printer detection</li>
+            <li>✓ Printer sync with server</li>
+            <li>✓ Print job polling</li>
+            <li>✓ File system permissions</li>
+          </ul>
+        </div>
+
+        <button
+          className="btn btn-primary btn-large"
+          onClick={() => window.open('/api/downloads/diagnostics', '_blank')}
+        >
+          📥 Download Diagnostics Tool
+        </button>
+
+        <details className="build-instructions">
+          <summary><strong>How to use the diagnostics tool</strong></summary>
+          <div className="instruction-content">
+            <h4>Steps:</h4>
+            <ol>
+              <li>
+                <strong>Download and extract:</strong>
+                <p>Download the ZIP file above and extract it to a folder on your Windows machine</p>
+              </li>
+              <li>
+                <strong>Configure credentials:</strong>
+                <p>Copy <code>.env.example</code> to <code>.env</code> and add your settings:</p>
+                <pre><code>SERVER_URL=https://growingsoft.net
+API_KEY=your-api-key-here
+POLL_INTERVAL=5000</code></pre>
+              </li>
+              <li>
+                <strong>Run diagnostics:</strong>
+                <p>Double-click <code>run-diagnostics.bat</code> (or right-click and "Run as Administrator")</p>
+              </li>
+              <li>
+                <strong>Review results:</strong>
+                <p>The tool will show ✓ for passed tests and ✗ for failed tests with detailed error messages</p>
+              </li>
+            </ol>
+            <div style={{ background: '#d1ecf1', border: '1px solid #bee5eb', borderRadius: '4px', padding: '1rem', marginTop: '1rem' }}>
+              <h4 style={{ color: '#0c5460', marginTop: 0 }}>💡 Pro Tip</h4>
+              <p style={{ color: '#0c5460', margin: 0 }}>
+                Run this tool <strong>before</strong> installing the Windows service to catch configuration issues early!
+              </p>
+            </div>
+          </div>
+        </details>
       </div>
 
       {/* Desktop App Option */}

@@ -30,7 +30,8 @@ export class AuthController {
           id: client.id,
           username: client.username,
           displayName: client.displayName,
-          email: client.email
+          email: client.email,
+          role: client.role
         },
         token
       });
@@ -63,7 +64,8 @@ export class AuthController {
           id: client.id,
           username: client.username,
           displayName: client.displayName,
-          email: client.email
+          email: client.email,
+          role: client.role
         },
         token
       });
@@ -87,6 +89,27 @@ export class AuthController {
           id: worker.id,
           name: worker.name,
           apiKey: worker.apiKey
+        }
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  static async me(req: any, res: Response) {
+    try {
+      const client = await ClientModel.findById(req.clientId);
+      if (!client) {
+        return res.status(404).json({ error: 'Client not found' });
+      }
+
+      res.json({
+        client: {
+          id: client.id,
+          username: client.username,
+          displayName: client.displayName,
+          email: client.email,
+          role: client.role
         }
       });
     } catch (error: any) {
