@@ -1,16 +1,25 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { Outlet } from 'react-router-dom';
 import { Navigation } from './Navigation';
+import './Layout.css';
 
-interface LayoutProps {
-  children: React.ReactNode;
-}
+export const Layout: React.FC = () => {
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
-export const Layout: React.FC<LayoutProps> = ({ children }) => {
+  const toggleCollapse = () => {
+    setIsCollapsed(!isCollapsed);
+  };
+
   return (
-    <div className="app-layout">
-      <Navigation />
-      <main className="app-content">
-        {children}
+    <div className="layout">
+      <Navigation
+        isCollapsed={isCollapsed}
+        toggleCollapse={toggleCollapse}
+      />
+      <main className="main-content">
+        <div className="page-content">
+          <Outlet />
+        </div>
       </main>
     </div>
   );

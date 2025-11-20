@@ -6,16 +6,14 @@ import { PrintJob, Printer } from '../types';
 export class PrintService {
   private apiClient: ApiClient;
   private pollInterval: number;
-  private allowedPrinters: string[];
   private printers: Printer[] = [];
   private printerMap: Map<string, Printer> = new Map();
   private isRunning: boolean = false;
   private pollTimers: Map<string, NodeJS.Timeout> = new Map();
 
-  constructor(apiClient: ApiClient, pollInterval: number, allowedPrinters: string[] = []) {
+  constructor(apiClient: ApiClient, pollInterval: number) {
     this.apiClient = apiClient;
     this.pollInterval = pollInterval;
-    this.allowedPrinters = allowedPrinters;
   }
 
   /**
@@ -61,25 +59,8 @@ export class PrintService {
    */
   private async syncPrinters(): Promise<void> {
     try {
-      let allPrinters = PrinterUtils.getPrinters();
-      logger.info(`Found ${allPrinters.length} printers on system`);
-
-      // Apply printer filter if configured
-      if (this.allowedPrinters.length > 0) {
-        this.printers = allPrinters.filter(printer =>
-          this.allowedPrinters.some(allowed =>
-            printer.name.toLowerCase().includes(allowed.toLowerCase()) ||
-            printer.displayName.toLowerCase().includes(allowed.toLowerCase())
-          )
-        );
-        logger.info(`Filtered to ${this.printers.length} printers based on ALLOWED_PRINTERS configuration`);
-        if (this.printers.length < allPrinters.length) {
-          const filtered = allPrinters.filter(p => !this.printers.includes(p));
-          logger.info(`Excluded printers: ${filtered.map(p => p.name).join(', ')}`);
-        }
-      } else {
-        this.printers = allPrinters;
-      }
+      this.printers = PrinterUtils.getPrinters();
+      logger.info(`Found ${this.printers.length} printers`);
 
       if (this.printers.length > 0) {
         const syncedPrinters = await this.apiClient.syncPrinters(this.printers);
@@ -190,11 +171,11 @@ export class PrintService {
           colorMode: job.colorMode,
           duplex: job.duplex,
           orientation: job.orientation,
-          paperSize: job.paperSize
+          scale: job.scale
         });
       } else {
         // For non-PDF files, use native printing
-        PrinterUtils.printNonPdfFile(printer.name, localFilePath);
+        PrinterUtils.printNonPdfFile(printer.name, localFilePath, job.mimeType);
       }
 
       // Update status to completed

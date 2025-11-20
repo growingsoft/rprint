@@ -12,6 +12,7 @@ export interface PrintJob {
   duplex: 'none' | 'short' | 'long';
   orientation: 'portrait' | 'landscape';
   paperSize: string;
+  scale: 'fit' | 'noscale' | 'shrink';
   createdAt: string;
 }
 
@@ -49,5 +50,4 @@ export interface Config {
   workerName: string;
   pollInterval: number;
   logLevel: string;
-  allowedPrinters: string[];
 }
