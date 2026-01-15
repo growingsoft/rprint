@@ -83,6 +83,7 @@ interface Printer {
   default_orientation?: string;
   default_color_mode?: string;
   default_duplex?: string;
+  default_scale?: string;
 }
 
 interface PrintJob {
@@ -236,6 +237,7 @@ export const Print: React.FC = () => {
                     if (printer.default_color_mode)
                       setColorMode(printer.default_color_mode);
                     if (printer.default_duplex) setDuplex(printer.default_duplex);
+                    if (printer.default_scale) setScale(printer.default_scale);
                   }
                 }
               }}

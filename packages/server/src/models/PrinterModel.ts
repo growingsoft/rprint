@@ -125,7 +125,8 @@ export class PrinterModel {
     default_paper_size?: string,
     default_orientation?: string,
     default_color_mode?: string,
-    default_duplex?: string
+    default_duplex?: string,
+    default_scale?: string
   }): Promise<void> {
     const updates: string[] = [];
     const params: any[] = [];
@@ -160,6 +161,11 @@ export class PrinterModel {
       params.push(settings.default_duplex);
     }
 
+    if (settings.default_scale !== undefined) {
+      updates.push('default_scale = ?');
+      params.push(settings.default_scale);
+    }
+
     if (updates.length === 0) return;
 
     params.push(id);
@@ -186,6 +192,7 @@ export class PrinterModel {
       default_orientation: row.default_orientation,
       default_color_mode: row.default_color_mode,
       default_duplex: row.default_duplex,
+      default_scale: row.default_scale,
       lastSeen: new Date(row.last_seen),
       createdAt: new Date(row.created_at)
     };

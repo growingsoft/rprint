@@ -121,6 +121,7 @@ class ApiService {
     formData.append('duplex', options.duplex);
     formData.append('orientation', options.orientation);
     formData.append('paperSize', options.paperSize);
+    formData.append('scale', options.scale);
 
     const response = await this.client.post<{ job: PrintJob }>('/jobs', formData, {
       headers: {

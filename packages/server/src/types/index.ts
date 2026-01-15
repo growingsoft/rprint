@@ -45,6 +45,7 @@ export interface Printer {
   default_orientation?: string;
   default_color_mode?: string;
   default_duplex?: string;
+  default_scale?: string;
   lastSeen: Date;
   createdAt: Date;
 }

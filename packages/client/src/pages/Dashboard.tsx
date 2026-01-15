@@ -29,7 +29,8 @@ export const Dashboard: React.FC = () => {
     colorMode: 'color',
     duplex: 'none',
     orientation: 'portrait',
-    paperSize: 'A4'
+    paperSize: 'A4',
+    scale: 'noscale'
   });
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const isElectron = typeof window !== 'undefined' && (window as any).electronAPI;
@@ -55,6 +56,18 @@ export const Dashboard: React.FC = () => {
     await Promise.all([loadPrinters(), loadJobs()]);
   };
 
+  const applyPrinterDefaults = (printer: any) => {
+    setPrintOptions(prev => ({
+      ...prev,
+      printerId: printer.id,
+      paperSize: printer.default_paper_size || prev.paperSize,
+      orientation: printer.default_orientation || prev.orientation,
+      colorMode: printer.default_color_mode || prev.colorMode,
+      duplex: printer.default_duplex || prev.duplex,
+      scale: printer.default_scale || prev.scale
+    }));
+  };
+
   const loadPrinters = async () => {
     try {
       const printerList = await api.getPrinters();
@@ -63,7 +76,7 @@ export const Dashboard: React.FC = () => {
       if (printerList.length > 0 && !selectedPrinter) {
         const defaultPrinter = printerList.find(p => p.isDefault) || printerList[0];
         setSelectedPrinter(defaultPrinter);
-        setPrintOptions(prev => ({ ...prev, printerId: defaultPrinter.id }));
+        applyPrinterDefaults(defaultPrinter);
       }
     } catch (err: any) {
       console.error('Error loading printers:', err);
@@ -329,7 +342,7 @@ startxref
                   className={`printer-item ${selectedPrinter?.id === printer.id ? 'selected' : ''}`}
                   onClick={() => {
                     setSelectedPrinter(printer);
-                    setPrintOptions(prev => ({ ...prev, printerId: printer.id }));
+                    applyPrinterDefaults(printer);
                   }}
                 >
                   <h3>{printer.displayName}</h3>
@@ -428,6 +441,18 @@ startxref
                 <option value="Letter">Letter</option>
                 <option value="Legal">Legal</option>
                 <option value="A3">A3</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label>Scaling</label>
+              <select
+                value={printOptions.scale}
+                onChange={(e) => setPrintOptions({ ...printOptions, scale: e.target.value as any })}
+              >
+                <option value="noscale">No Scaling</option>
+                <option value="fit">Fit to Page</option>
+                <option value="shrink">Shrink to Page</option>
               </select>
             </div>
           </div>

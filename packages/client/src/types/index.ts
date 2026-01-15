@@ -11,6 +11,7 @@ export interface PrintJob {
   duplex: 'none' | 'short' | 'long';
   orientation: 'portrait' | 'landscape';
   paperSize: string;
+  scale?: 'fit' | 'noscale' | 'shrink';
   createdAt: string;
   assignedAt?: string;
   completedAt?: string;
@@ -38,6 +39,13 @@ export interface Printer {
   description?: string;
   location?: string;
   capabilities: PrinterCapabilities;
+  virtual_printer_enabled?: boolean;
+  tags?: string;
+  default_paper_size?: string;
+  default_orientation?: string;
+  default_color_mode?: string;
+  default_duplex?: string;
+  default_scale?: string;
   lastSeen: string;
 }
 
@@ -74,6 +82,7 @@ export interface PrintOptions {
   duplex: 'none' | 'short' | 'long';
   orientation: 'portrait' | 'landscape';
   paperSize: string;
+  scale: 'fit' | 'noscale' | 'shrink';
 }
 
 export interface ElectronAPI {

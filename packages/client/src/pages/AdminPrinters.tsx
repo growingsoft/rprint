@@ -15,6 +15,7 @@ interface Printer {
   default_orientation?: string;
   default_color_mode?: string;
   default_duplex?: string;
+  default_scale?: string;
 }
 
 export const AdminPrinters: React.FC = () => {
@@ -47,6 +48,7 @@ export const AdminPrinters: React.FC = () => {
     default_orientation?: string;
     default_color_mode?: string;
     default_duplex?: string;
+    default_scale?: string;
   }) => {
     try {
       setSaving(printerId);
@@ -214,6 +216,19 @@ export const AdminPrinters: React.FC = () => {
                         <option value="none">None (Single-Sided)</option>
                         <option value="long-edge">Long Edge (Book Style)</option>
                         <option value="short-edge">Short Edge (Flip Style)</option>
+                      </select>
+                    </div>
+
+                    <div className="setting-group">
+                      <label>Default Scale:</label>
+                      <select
+                        value={printer.default_scale || 'noscale'}
+                        onChange={(e) => updateDefaultSettings(printer, 'default_scale', e.target.value)}
+                        disabled={saving === printer.id}
+                      >
+                        <option value="noscale">No Scaling</option>
+                        <option value="fit">Fit to Page</option>
+                        <option value="shrink">Shrink to Page</option>
                       </select>
                     </div>
                   </div>
