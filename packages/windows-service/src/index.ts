@@ -3,6 +3,7 @@ import { ApiClient } from './services/ApiClient';
 import { PrintService } from './services/PrintService';
 import { logger } from './utils/logger';
 import { Config } from './types';
+const { AutoUpdater } = require('../scripts/auto-update');
 
 dotenv.config();
 
@@ -34,7 +35,7 @@ logger.info('Starting rprint Windows service...');
 logger.info(`Server URL: ${config.serverUrl}`);
 logger.info(`Worker Name: ${config.workerName}`);
 logger.info(`Poll Interval: ${config.pollInterval}ms`);
-if (config.allowedPrinters.length > 0) {
+if (config.allowedPrinters && config.allowedPrinters.length > 0) {
   logger.info(`Printer Filter: ${config.allowedPrinters.join(', ')}`);
 } else {
   logger.info('Printer Filter: All printers enabled');
@@ -42,7 +43,8 @@ if (config.allowedPrinters.length > 0) {
 
 // Create services
 const apiClient = new ApiClient(config.serverUrl, config.apiKey);
-const printService = new PrintService(apiClient, config.pollInterval, config.allowedPrinters);
+const printService = new PrintService(apiClient, config.pollInterval);
+const autoUpdater = new AutoUpdater();
 
 // Start service
 printService.start().catch(error => {
@@ -50,10 +52,20 @@ printService.start().catch(error => {
   process.exit(1);
 });
 
+// Start auto-updater
+try {
+  autoUpdater.start();
+  logger.info('Auto-updater started');
+} catch (error) {
+  logger.warn('Failed to start auto-updater:', error);
+  // Don't exit - auto-update is optional
+}
+
 // Graceful shutdown
 const shutdown = () => {
   logger.info('Shutting down service...');
   printService.stop();
+  autoUpdater.stop();
   process.exit(0);
 };
 

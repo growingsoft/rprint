@@ -24,11 +24,7 @@ export class PrintJobController {
         duplex: req.body.duplex || 'none',
         orientation: req.body.orientation || 'portrait',
         paperSize: req.body.paperSize || 'A4',
-        quality: req.body.quality || 'normal',
-        marginTop: parseInt(req.body.marginTop) || 10,
-        marginBottom: parseInt(req.body.marginBottom) || 10,
-        marginLeft: parseInt(req.body.marginLeft) || 10,
-        marginRight: parseInt(req.body.marginRight) || 10,
+        scale: req.body.scale || 'noscale',
         webhookUrl: req.body.webhookUrl
       };
 

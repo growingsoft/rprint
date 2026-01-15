@@ -24,10 +24,10 @@ class ApiService {
       if (stored && !stored.includes('localhost') && !stored.includes('127.0.0.1')) {
         // Don't use production URLs in development
         localStorage.removeItem('serverUrl');
-        return 'http://localhost:3001/api';
+        return 'http://localhost:3002/api';
       }
 
-      return stored ? (stored.endsWith('/api') ? stored : `${stored}/api`) : 'http://localhost:3001/api';
+      return stored ? (stored.endsWith('/api') ? stored : `${stored}/api`) : 'http://localhost:3002/api';
     };
 
     this.client = axios.create({

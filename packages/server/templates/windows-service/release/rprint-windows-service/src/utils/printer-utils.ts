@@ -1,7 +1,5 @@
 import { execSync } from 'child_process';
-import path from 'path';
-import fs from 'fs';
-import { Printer, PrinterInfo } from '../types';
+import { Printer } from '../types';
 import { logger } from './logger';
 
 export class PrinterUtils {
@@ -44,7 +42,7 @@ export class PrinterUtils {
     return {
       color: !printer.Name.toLowerCase().includes('mono'),
       duplex: true, // Assume most modern printers support duplex
-      paperSizes: ['A4', 'Letter', 'Legal', 'A3'],
+      paperSizes: ['A4', 'Letter', 'Legal', 'A3', '4x6', 'Label_1.5x3'],
       maxCopies: 99
     };
   }
@@ -71,14 +69,29 @@ export class PrinterUtils {
       colorMode?: 'color' | 'grayscale';
       duplex?: 'none' | 'short' | 'long';
       orientation?: 'portrait' | 'landscape';
+      scale?: 'fit' | 'noscale' | 'shrink';
+      paperSize?: string;
     }
   ): Promise<void> {
     try {
       const pdfToPrinter = require('pdf-to-printer');
 
+      logger.info(`Preparing to print file: ${filePath}`);
+      logger.info(`Target printer: ${printerName}`);
+      logger.info(`Print options requested:`, options);
+
+      // Detect if this is a label printer (Rollo, Zebra, Dymo, etc.)
+      const isLabelPrinter = printerName.toLowerCase().includes('rollo') ||
+                            printerName.toLowerCase().includes('zebra') ||
+                            printerName.toLowerCase().includes('dymo') ||
+                            printerName.toLowerCase().includes('label');
+
       const printOptions: any = {
         printer: printerName,
-        copies: options.copies || 1
+        copies: options.copies || 1,
+        // For label printers, default to 'fit' to ensure content fits on the label
+        // For regular printers, use 'noscale' or whatever was requested
+        scale: options.scale || (isLabelPrinter ? 'fit' : 'noscale')
       };
 
       // Add additional options if supported
@@ -91,11 +104,25 @@ export class PrinterUtils {
       if (options.colorMode === 'grayscale') {
         printOptions.monochrome = true;
       }
+      if (options.paperSize) {
+        printOptions.paperSize = options.paperSize;
+        logger.info(`Using paper size: ${options.paperSize}`);
+      }
+
+      logger.info(`Final print options:`, printOptions);
+      logger.info(`Calling pdf-to-printer.print()...`);
 
       await pdfToPrinter.print(filePath, printOptions);
-      logger.info(`Successfully printed ${filePath} on ${printerName}`);
-    } catch (error) {
-      logger.error(`Error printing file: ${error}`);
+
+      logger.info(`pdf-to-printer.print() completed successfully`);
+      logger.info(`Printed ${filePath} on ${printerName}`);
+    } catch (error: any) {
+      logger.error(`Error printing file:`, {
+        error: error.message,
+        stack: error.stack,
+        printer: printerName,
+        filePath: filePath
+      });
       throw error;
     }
   }
@@ -103,65 +130,33 @@ export class PrinterUtils {
   /**
    * Print non-PDF files using native Windows printing
    */
-  static async printNonPdfFile(printerName: string, filePath: string): Promise<void> {
+  static printNonPdfFile(printerName: string, filePath: string, mimeType?: string): void {
     try {
-      const ext = path.extname(filePath).toLowerCase();
+      let command: string;
+      // Sanitize file path for shell command
+      const sanitizedFilePath = filePath.replace(/'/g, "''");
 
-      // Handle PostScript files by converting to PDF first
-      if (ext === '.ps') {
-        logger.info(`Converting PostScript file to PDF: ${filePath}`);
-        const pdfPath = filePath.replace(/\.ps$/i, '_converted.pdf');
-
-        try {
-          // Try using Ghostscript to convert PS to PDF
-          // Common Ghostscript locations on Windows
-          const gsLocations = [
-            'C:\\Program Files\\gs\\gs10.02.1\\bin\\gswin64c.exe',
-            'C:\\Program Files\\gs\\gs10.02.0\\bin\\gswin64c.exe',
-            'C:\\Program Files\\gs\\gs10.01.2\\bin\\gswin64c.exe',
-            'C:\\Program Files (x86)\\gs\\gs10.02.1\\bin\\gswin32c.exe',
-            'C:\\Program Files (x86)\\gs\\gs10.02.0\\bin\\gswin32c.exe',
-            'gswin64c.exe', // Try PATH
-            'gswin32c.exe'  // Try PATH
-          ];
-
-          let gsPath = null;
-          for (const loc of gsLocations) {
-            try {
-              execSync(`where "${loc}"`, { stdio: 'ignore' });
-              gsPath = loc;
-              break;
-            } catch {
-              // Try next location
-            }
-          }
-
-          if (!gsPath) {
-            throw new Error('Ghostscript not found. Please install Ghostscript to print PostScript files.');
-          }
-
-          // Convert PS to PDF using Ghostscript
-          const gsCommand = `"${gsPath}" -dNOPAUSE -dBATCH -sDEVICE=pdfwrite -sOutputFile="${pdfPath}" "${filePath}"`;
-          execSync(gsCommand);
-          logger.info(`Converted PS to PDF: ${pdfPath}`);
-
-          // Now print the PDF
-          await this.printFile(printerName, pdfPath, { copies: 1 });
-
-          // Clean up converted PDF
-          fs.unlinkSync(pdfPath);
-          logger.info(`Cleaned up converted PDF: ${pdfPath}`);
-          return;
-        } catch (error) {
-          logger.error(`Failed to convert PostScript: ${error}`);
-          throw error;
-        }
+      if (mimeType && mimeType.startsWith('image/')) {
+        // Use mspaint for printing images to a specific printer.
+        // The /pt switch prints to a specific printer without user interaction.
+        command = `mspaint /pt "${sanitizedFilePath}" "${printerName}"`;
+        logger.info(`Printing image ${filePath} to ${printerName} using mspaint`);
+      } else if (
+        (mimeType && (mimeType === 'application/zpl' || mimeType === 'application/vnd.zebra.zpl')) ||
+        filePath.toLowerCase().endsWith('.zpl')
+      ) {
+        // For ZPL, send raw content to the printer via PowerShell.
+        command = `powershell -Command "Get-Content -Path '${sanitizedFilePath}' -Raw | Out-Printer -Name '${printerName}'"`;
+        logger.info(`Sending ZPL file ${filePath} to printer ${printerName}`);
+      } else {
+        // Fallback to the 'print' command for other file types.
+        // This is better than 'Start-Process -Verb Print' as it allows specifying a printer.
+        command = `print /d:"${printerName}" "${sanitizedFilePath}"`;
+        logger.info(`Sending ${filePath} to printer ${printerName} using "print" command`);
       }
 
-      // For other non-PDF files, use Windows Shell Execute
-      const command = `powershell -Command "Start-Process -FilePath '${filePath}' -Verb Print -WindowStyle Hidden"`;
-      execSync(command);
-      logger.info(`Successfully sent ${filePath} to default printer`);
+      execSync(command, { stdio: 'ignore' }); // ignore stdio to prevent hanging
+      logger.info(`Successfully sent ${filePath} to printer ${printerName}`);
     } catch (error) {
       logger.error(`Error printing non-PDF file: ${error}`);
       throw error;

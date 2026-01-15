@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import { Outlet } from 'react-router-dom';
 import { Navigation } from './Navigation';
 import './Layout.css';
 
-export const Layout: React.FC = () => {
+export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   const toggleCollapse = () => {
@@ -18,7 +17,7 @@ export const Layout: React.FC = () => {
       />
       <main className="main-content">
         <div className="page-content">
-          <Outlet />
+          {children}
         </div>
       </main>
     </div>

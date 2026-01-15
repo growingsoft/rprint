@@ -12,11 +12,7 @@ export interface PrintJob {
   duplex: 'none' | 'short' | 'long';
   orientation: 'portrait' | 'landscape';
   paperSize: string;
-  quality?: string;
-  marginTop?: number;
-  marginBottom?: number;
-  marginLeft?: number;
-  marginRight?: number;
+  scale?: 'fit' | 'noscale' | 'shrink';
   webhookUrl?: string;
   createdAt: Date;
   assignedAt?: Date;
@@ -98,11 +94,7 @@ export interface CreatePrintJobRequest {
   duplex?: 'none' | 'short' | 'long';
   orientation?: 'portrait' | 'landscape';
   paperSize?: string;
-  quality?: string;
-  marginTop?: number;
-  marginBottom?: number;
-  marginLeft?: number;
-  marginRight?: number;
+  scale?: 'fit' | 'noscale' | 'shrink';
   webhookUrl?: string;
 }
 

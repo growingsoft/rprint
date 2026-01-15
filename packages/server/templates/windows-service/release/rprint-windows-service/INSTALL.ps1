@@ -27,6 +27,77 @@ try {
     exit 1
 }
 
+# Check if Ghostscript is installed
+Write-Host ""
+Write-Host "Checking for Ghostscript..." -ForegroundColor Yellow
+$gsInstalled = $false
+try {
+    $gsVersion = gswin64c -version 2>$null
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "[OK] Ghostscript is installed: $gsVersion" -ForegroundColor Green
+        $gsInstalled = $true
+    }
+} catch {
+    # Try alternate name
+    try {
+        $gsVersion = gswin32c -version 2>$null
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "[OK] Ghostscript is installed: $gsVersion" -ForegroundColor Green
+            $gsInstalled = $true
+        }
+    } catch {}
+}
+
+if (-not $gsInstalled) {
+    Write-Host "[WARNING] Ghostscript is not installed!" -ForegroundColor Red
+    Write-Host "Ghostscript is required for printing PDFs and images properly." -ForegroundColor Yellow
+    Write-Host ""
+    $installGS = Read-Host "Do you want to download and install Ghostscript now? (y/n)"
+
+    if ($installGS -eq "y") {
+        Write-Host ""
+        Write-Host "Downloading Ghostscript installer..." -ForegroundColor Yellow
+
+        $gsUrl = "https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs10041/gs10.04.0-win64.exe"
+        $gsInstaller = "$env:TEMP\ghostscript-installer.exe"
+
+        try {
+            Invoke-WebRequest -Uri $gsUrl -OutFile $gsInstaller -UseBasicParsing
+            Write-Host "[OK] Downloaded Ghostscript installer" -ForegroundColor Green
+
+            Write-Host ""
+            Write-Host "Installing Ghostscript..." -ForegroundColor Yellow
+            Write-Host "Please follow the installer prompts and use the default installation path." -ForegroundColor Cyan
+
+            Start-Process -FilePath $gsInstaller -Wait
+
+            # Clean up
+            Remove-Item $gsInstaller -ErrorAction SilentlyContinue
+
+            Write-Host "[OK] Ghostscript installation completed" -ForegroundColor Green
+            Write-Host "Note: You may need to restart this script for changes to take effect." -ForegroundColor Yellow
+        } catch {
+            Write-Host "[WARNING] Failed to download/install Ghostscript automatically" -ForegroundColor Yellow
+            Write-Host "Please download and install manually from:" -ForegroundColor White
+            Write-Host "  https://ghostscript.com/releases/gsdnld.html" -ForegroundColor Cyan
+            Write-Host ""
+            $continue = Read-Host "Continue installation anyway? (y/n)"
+            if ($continue -ne "y") {
+                exit 1
+            }
+        }
+    } else {
+        Write-Host ""
+        Write-Host "WARNING: Without Ghostscript, printing may not work correctly!" -ForegroundColor Yellow
+        Write-Host "You can install it later from: https://ghostscript.com/releases/gsdnld.html" -ForegroundColor Cyan
+        Write-Host ""
+        $continue = Read-Host "Continue installation anyway? (y/n)"
+        if ($continue -ne "y") {
+            exit 1
+        }
+    }
+}
+
 # Check if .env file exists
 if (-not (Test-Path ".env")) {
     Write-Host ""

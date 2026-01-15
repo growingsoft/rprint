@@ -42,7 +42,7 @@ export class PrinterUtils {
     return {
       color: !printer.Name.toLowerCase().includes('mono'),
       duplex: true, // Assume most modern printers support duplex
-      paperSizes: ['A4', 'Letter', 'Legal', 'A3'],
+      paperSizes: ['A4', 'Letter', 'Legal', 'A3', '4x6', 'Label_1.5x3'],
       maxCopies: 99
     };
   }
@@ -70,15 +70,28 @@ export class PrinterUtils {
       duplex?: 'none' | 'short' | 'long';
       orientation?: 'portrait' | 'landscape';
       scale?: 'fit' | 'noscale' | 'shrink';
+      paperSize?: string;
     }
   ): Promise<void> {
     try {
       const pdfToPrinter = require('pdf-to-printer');
 
+      logger.info(`Preparing to print file: ${filePath}`);
+      logger.info(`Target printer: ${printerName}`);
+      logger.info(`Print options requested:`, options);
+
+      // Detect if this is a label printer (Rollo, Zebra, Dymo, etc.)
+      const isLabelPrinter = printerName.toLowerCase().includes('rollo') ||
+                            printerName.toLowerCase().includes('zebra') ||
+                            printerName.toLowerCase().includes('dymo') ||
+                            printerName.toLowerCase().includes('label');
+
       const printOptions: any = {
         printer: printerName,
         copies: options.copies || 1,
-        scale: options.scale || 'noscale'
+        // For label printers, default to 'fit' to ensure content fits on the label
+        // For regular printers, use 'noscale' or whatever was requested
+        scale: options.scale || (isLabelPrinter ? 'fit' : 'noscale')
       };
 
       // Add additional options if supported
@@ -91,11 +104,25 @@ export class PrinterUtils {
       if (options.colorMode === 'grayscale') {
         printOptions.monochrome = true;
       }
+      if (options.paperSize) {
+        printOptions.paperSize = options.paperSize;
+        logger.info(`Using paper size: ${options.paperSize}`);
+      }
+
+      logger.info(`Final print options:`, printOptions);
+      logger.info(`Calling pdf-to-printer.print()...`);
 
       await pdfToPrinter.print(filePath, printOptions);
-      logger.info(`Successfully printed ${filePath} on ${printerName}`);
-    } catch (error) {
-      logger.error(`Error printing file: ${error}`);
+
+      logger.info(`pdf-to-printer.print() completed successfully`);
+      logger.info(`Printed ${filePath} on ${printerName}`);
+    } catch (error: any) {
+      logger.error(`Error printing file:`, {
+        error: error.message,
+        stack: error.stack,
+        printer: printerName,
+        filePath: filePath
+      });
       throw error;
     }
   }

@@ -114,12 +114,6 @@ export const Print: React.FC = () => {
   const [colorMode, setColorMode] = useState<string>('color');
   const [duplex, setDuplex] = useState<string>('none');
   const [scale, setScale] = useState<string>('noscale');
-  const [quality] = useState<string>('normal');
-  const [marginTop] = useState<number>(10);
-  const [marginBottom] = useState<number>(10);
-  const [marginLeft] = useState<number>(10);
-  const [marginRight] = useState<number>(10);
-  const [showAdvanced, setShowAdvanced] = useState<boolean>(false);
 
   useEffect(() => {
     loadPrinters();
@@ -192,11 +186,6 @@ export const Print: React.FC = () => {
       formData.append('colorMode', colorMode);
       formData.append('duplex', duplex);
       formData.append('scale', scale);
-      formData.append('quality', quality);
-      formData.append('marginTop', marginTop.toString());
-      formData.append('marginBottom', marginBottom.toString());
-      formData.append('marginLeft', marginLeft.toString());
-      formData.append('marginRight', marginRight.toString());
 
       await api.post('/jobs', formData);
 
@@ -304,6 +293,7 @@ export const Print: React.FC = () => {
                 <option value="Letter">Letter (8.5 × 11 in)</option>
                 <option value="Legal">Legal (8.5 × 14 in)</option>
                 <option value="4x6">4 × 6 in (Shipping Label)</option>
+                <option value="Label_1.5x3">1.5 × 3 in (Small Label)</option>
               </select>
             </div>
             <div className="form-group" style={{ flex: 1 }}>
@@ -361,21 +351,6 @@ export const Print: React.FC = () => {
               <option value="shrink">Shrink to Page</option>
             </select>
           </div>
-
-          <button
-            type="button"
-            onClick={() => setShowAdvanced(!showAdvanced)}
-            className="btn-secondary"
-            style={{ width: '100%', marginBottom: '1rem' }}
-          >
-            {showAdvanced ? 'Hide Advanced Options' : 'Show Advanced Options'}
-          </button>
-
-          {showAdvanced && (
-            <div>
-              {/* ... advanced options form ... */}
-            </div>
-          )}
 
           <button
             onClick={handlePrint}

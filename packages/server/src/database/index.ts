@@ -28,12 +28,38 @@ export class Database {
     if (!this.db) throw new Error('Database not connected');
 
     // Use exec() instead of run() to execute multiple SQL statements
-    return new Promise((resolve, reject) => {
+    await new Promise<void>((resolve, reject) => {
       this.db!.exec(SCHEMA_SQL, (err) => {
         if (err) reject(err);
         else resolve();
       });
     });
+
+    // Run migrations to add new columns to existing tables
+    await this.runMigrations();
+  }
+
+  private async runMigrations(): Promise<void> {
+    // Add scale, quality, and margin columns if they don't exist
+    const migrations = [
+      `ALTER TABLE print_jobs ADD COLUMN scale TEXT DEFAULT 'noscale'`,
+      `ALTER TABLE print_jobs ADD COLUMN quality TEXT DEFAULT 'normal'`,
+      `ALTER TABLE print_jobs ADD COLUMN margin_top INTEGER DEFAULT 10`,
+      `ALTER TABLE print_jobs ADD COLUMN margin_bottom INTEGER DEFAULT 10`,
+      `ALTER TABLE print_jobs ADD COLUMN margin_left INTEGER DEFAULT 10`,
+      `ALTER TABLE print_jobs ADD COLUMN margin_right INTEGER DEFAULT 10`
+    ];
+
+    for (const migration of migrations) {
+      try {
+        await this.run(migration);
+      } catch (err: any) {
+        // Ignore "duplicate column" errors (column already exists)
+        if (!err.message.includes('duplicate column')) {
+          throw err;
+        }
+      }
+    }
   }
 
   async run(sql: string, params: any[] = []): Promise<void> {

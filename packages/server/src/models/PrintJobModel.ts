@@ -17,9 +17,8 @@ export class PrintJobModel {
     await db.run(
       `INSERT INTO print_jobs (
         id, client_id, printer_id, file_name, file_path, file_size, mime_type,
-        status, copies, color_mode, duplex, orientation, paper_size, quality,
-        margin_top, margin_bottom, margin_left, margin_right, webhook_url, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        status, copies, color_mode, duplex, orientation, paper_size, scale, webhook_url, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         clientId,
@@ -34,11 +33,7 @@ export class PrintJobModel {
         options.duplex || 'none',
         options.orientation || 'portrait',
         options.paperSize || 'A4',
-        options.quality || 'normal',
-        options.marginTop || 10,
-        options.marginBottom || 10,
-        options.marginLeft || 10,
-        options.marginRight || 10,
+        options.scale || 'noscale',
         options.webhookUrl || null,
         now
       ]
@@ -201,6 +196,7 @@ export class PrintJobModel {
       duplex: row.duplex,
       orientation: row.orientation,
       paperSize: row.paper_size,
+      scale: row.scale,
       webhookUrl: row.webhook_url,
       createdAt: new Date(row.created_at),
       assignedAt: row.assigned_at ? new Date(row.assigned_at) : undefined,

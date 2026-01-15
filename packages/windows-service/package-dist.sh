@@ -31,6 +31,10 @@ cp README.md "$PACKAGE_DIR/"
 cp INSTALL.bat "$PACKAGE_DIR/"
 cp INSTALL.ps1 "$PACKAGE_DIR/"
 cp TROUBLESHOOTING.md "$PACKAGE_DIR/"
+cp setup-sumatra.ps1 "$PACKAGE_DIR/" 2>/dev/null || true
+cp FIX-PRINTING-NOW.md "$PACKAGE_DIR/" 2>/dev/null || true
+cp diagnose.js "$PACKAGE_DIR/" 2>/dev/null || true
+cp test-print-simple.js "$PACKAGE_DIR/" 2>/dev/null || true
 
 # Copy only production dependencies info
 cd "$PACKAGE_DIR"

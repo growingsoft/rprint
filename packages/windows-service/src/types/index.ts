@@ -50,4 +50,5 @@ export interface Config {
   workerName: string;
   pollInterval: number;
   logLevel: string;
+  allowedPrinters?: string[];
 }

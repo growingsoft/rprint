@@ -165,16 +165,18 @@ export class PrintService {
       localFilePath = await this.apiClient.downloadJobFile(job.id, job.fileName);
 
       // Print file
-      if (job.mimeType === 'application/pdf') {
+      if (job.mimeType === 'application/pdf' || job.mimeType.startsWith('image/')) {
+        // Use pdf-to-printer for PDFs and images (it supports both)
         await PrinterUtils.printFile(printer.name, localFilePath, {
           copies: job.copies,
           colorMode: job.colorMode,
           duplex: job.duplex,
           orientation: job.orientation,
-          scale: job.scale
+          scale: job.scale,
+          paperSize: job.paperSize
         });
       } else {
-        // For non-PDF files, use native printing
+        // For other file types (ZPL, etc), use native printing
         PrinterUtils.printNonPdfFile(printer.name, localFilePath, job.mimeType);
       }
 
