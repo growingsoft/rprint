@@ -173,11 +173,15 @@ export const AdminPrinters: React.FC = () => {
                         <option value="A4">A4 (210 × 297 mm)</option>
                         <option value="Letter">Letter (8.5 × 11 in)</option>
                         <option value="Legal">Legal (8.5 × 14 in)</option>
-                        <option value="4x6">4 × 6 in (Shipping Label)</option>
-                        <option value="Label_1.5x3">1.5 × 3 in (Small Label)</option>
                         <option value="A3">A3 (297 × 420 mm)</option>
                         <option value="A5">A5 (148 × 210 mm)</option>
                         <option value="Tabloid">Tabloid (11 × 17 in)</option>
+                        <option value="4x6">4 × 6 in (Shipping Label)</option>
+                        <option value="4x3">4 × 3 in (Label)</option>
+                        <option value="4x2">4 × 2 in (Label)</option>
+                        <option value="4x1">4 × 1 in (Label)</option>
+                        <option value="2.25x1.25">2.25 × 1.25 in (Label)</option>
+                        <option value="Label_1.5x3">1.5 × 3 in (Small Label)</option>
                       </select>
                     </div>
 

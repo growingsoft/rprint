@@ -437,10 +437,17 @@ startxref
                 value={printOptions.paperSize}
                 onChange={(e) => setPrintOptions({ ...printOptions, paperSize: e.target.value })}
               >
-                <option value="A4">A4</option>
-                <option value="Letter">Letter</option>
-                <option value="Legal">Legal</option>
+                <option value="A4">A4 (210 x 297 mm)</option>
+                <option value="Letter">Letter (8.5 x 11 in)</option>
+                <option value="Legal">Legal (8.5 x 14 in)</option>
                 <option value="A3">A3</option>
+                <option value="A5">A5 (148 x 210 mm)</option>
+                <option value="4x6">4 x 6 in (Shipping Label)</option>
+                <option value="4x3">4 x 3 in (Label)</option>
+                <option value="4x2">4 x 2 in (Label)</option>
+                <option value="4x1">4 x 1 in (Label)</option>
+                <option value="2.25x1.25">2.25 x 1.25 in (Label)</option>
+                <option value="Label_1.5x3">1.5 x 3 in (Small Label)</option>
               </select>
             </div>
 

@@ -67,7 +67,16 @@ export class PrinterModel {
   }
 
   static async findAll(): Promise<Printer[]> {
-    const rows = await db.all<any>('SELECT * FROM printers ORDER BY display_name');
+    // Deduplicate by printer name - pick the most recently seen printer for each unique name
+    const rows = await db.all<any>(`
+      SELECT p.* FROM printers p
+      INNER JOIN (
+        SELECT name, MAX(last_seen) as max_last_seen
+        FROM printers
+        GROUP BY name
+      ) latest ON p.name = latest.name AND p.last_seen = latest.max_last_seen
+      ORDER BY p.display_name
+    `);
     return rows.map(row => this.mapRow(row));
   }
 
@@ -110,11 +119,19 @@ export class PrinterModel {
   }
 
   static async findAllForVirtualPrinter(): Promise<Printer[]> {
+    // Deduplicate by printer name - pick the most recently seen printer for each unique name
     const rows = await db.all(`
-      SELECT * FROM printers
-      WHERE status = 'online'
-      AND virtual_printer_enabled = 1
-      ORDER BY is_default DESC, display_name ASC
+      SELECT p.* FROM printers p
+      INNER JOIN (
+        SELECT name, MAX(last_seen) as max_last_seen
+        FROM printers
+        WHERE status = 'online'
+        AND virtual_printer_enabled = 1
+        GROUP BY name
+      ) latest ON p.name = latest.name AND p.last_seen = latest.max_last_seen
+      WHERE p.status = 'online'
+      AND p.virtual_printer_enabled = 1
+      ORDER BY p.is_default DESC, p.display_name ASC
     `);
     return rows.map(this.mapRow);
   }
