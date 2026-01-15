@@ -69,6 +69,14 @@ app.use('/api/api-keys', apikeyRoutes);
 app.use('/api/packages', packageRoutes);
 app.use('/api/clients', clientRoutes);
 
+// Serve static files from public directory
+app.use(express.static(path.join(__dirname, '../public')));
+
+// SPA fallback - serve index.html for client-side routes
+app.get(['/', '/jobs', '/jobs/*', '/printers', '/printers/*', '/workers', '/workers/*', '/settings', '/settings/*', '/login', '/register'], (_req, res) => {
+  res.sendFile(path.join(__dirname, '../public/index.html'));
+});
+
 // Health check (both /health and /api/health for compatibility)
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
