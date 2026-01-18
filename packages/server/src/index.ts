@@ -29,15 +29,18 @@ const PORT = process.env.PORT || 3000;
 app.set('trust proxy', 1);
 
 // Middleware
-// Configure helmet to allow Swagger UI resources
+// Configure helmet to allow Swagger UI resources and blob URLs for previews
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'", "unpkg.com"],
       scriptSrc: ["'self'", "'unsafe-inline'", "unpkg.com"],
-      imgSrc: ["'self'", "data:", "validator.swagger.io"],
+      imgSrc: ["'self'", "data:", "blob:", "validator.swagger.io"],
       fontSrc: ["'self'", "data:"],
+      frameSrc: ["'self'", "blob:"],
+      objectSrc: ["'self'", "blob:"],
+      mediaSrc: ["'self'", "blob:"],
     },
   },
 }));
