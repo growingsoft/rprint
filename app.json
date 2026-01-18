@@ -1,0 +1,47 @@
+{
+  "name": "rprint",
+  "displayName": "RPrint - Remote Printing System",
+  "description": "Complete remote printing system for printing documents from any PC/Mac to Windows-connected printers",
+  "version": "1.0.0",
+  "repository": "https://github.com/growingsoft/rprint",
+  "domain": "growingsoft.net",
+  "port": 5003,
+  "nodeVersion": ">=18.0.0",
+  "pm2": {
+    "name": "rprint",
+    "script": "dist/index.js",
+    "cwd": "packages/server",
+    "instances": 1,
+    "maxMemory": "512M"
+  },
+  "nginx": {
+    "serverNames": ["growingsoft.net", "www.growingsoft.net"],
+    "maxUploadSize": "20M",
+    "proxyTimeout": 300,
+    "ssl": true
+  },
+  "webhook": {
+    "enabled": true,
+    "path": "/api/webhooks/deploy",
+    "branch": "main"
+  },
+  "backup": {
+    "path": "/var/backups/rprint",
+    "keepDays": 30
+  },
+  "systemDependencies": [
+    "poppler-utils"
+  ],
+  "directories": {
+    "server": "packages/server",
+    "client": "packages/client",
+    "uploads": "packages/server/uploads",
+    "database": "packages/server/data",
+    "thumbnails": "packages/server/thumbnails"
+  },
+  "build": {
+    "server": "npm run build",
+    "client": "npm run build:web"
+  },
+  "healthCheck": "/api/health"
+}
