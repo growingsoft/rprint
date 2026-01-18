@@ -73,7 +73,7 @@ app.use('/api/clients', clientRoutes);
 app.use(express.static(path.join(__dirname, '../public')));
 
 // SPA fallback - serve index.html for client-side routes
-app.get(['/', '/jobs', '/jobs/*', '/printers', '/printers/*', '/workers', '/workers/*', '/settings', '/settings/*', '/login', '/register'], (_req, res) => {
+app.get(['/', '/jobs', '/jobs/*', '/printers', '/printers/*', '/workers', '/workers/*', '/settings', '/settings/*', '/login', '/register', '/admin', '/admin/*'], (_req, res) => {
   res.sendFile(path.join(__dirname, '../public/index.html'));
 });
 
