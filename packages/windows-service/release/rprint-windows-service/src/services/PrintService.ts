@@ -6,16 +6,14 @@ import { PrintJob, Printer } from '../types';
 export class PrintService {
   private apiClient: ApiClient;
   private pollInterval: number;
-  private allowedPrinters: string[];
   private printers: Printer[] = [];
   private printerMap: Map<string, Printer> = new Map();
   private isRunning: boolean = false;
   private pollTimers: Map<string, NodeJS.Timeout> = new Map();
 
-  constructor(apiClient: ApiClient, pollInterval: number, allowedPrinters: string[] = []) {
+  constructor(apiClient: ApiClient, pollInterval: number) {
     this.apiClient = apiClient;
     this.pollInterval = pollInterval;
-    this.allowedPrinters = allowedPrinters;
   }
 
   /**
@@ -61,25 +59,8 @@ export class PrintService {
    */
   private async syncPrinters(): Promise<void> {
     try {
-      let allPrinters = PrinterUtils.getPrinters();
-      logger.info(`Found ${allPrinters.length} printers on system`);
-
-      // Apply printer filter if configured
-      if (this.allowedPrinters.length > 0) {
-        this.printers = allPrinters.filter(printer =>
-          this.allowedPrinters.some(allowed =>
-            printer.name.toLowerCase().includes(allowed.toLowerCase()) ||
-            printer.displayName.toLowerCase().includes(allowed.toLowerCase())
-          )
-        );
-        logger.info(`Filtered to ${this.printers.length} printers based on ALLOWED_PRINTERS configuration`);
-        if (this.printers.length < allPrinters.length) {
-          const filtered = allPrinters.filter(p => !this.printers.includes(p));
-          logger.info(`Excluded printers: ${filtered.map(p => p.name).join(', ')}`);
-        }
-      } else {
-        this.printers = allPrinters;
-      }
+      this.printers = PrinterUtils.getPrinters();
+      logger.info(`Found ${this.printers.length} printers`);
 
       if (this.printers.length > 0) {
         const syncedPrinters = await this.apiClient.syncPrinters(this.printers);
@@ -184,16 +165,19 @@ export class PrintService {
       localFilePath = await this.apiClient.downloadJobFile(job.id, job.fileName);
 
       // Print file
-      if (job.mimeType === 'application/pdf') {
+      if (job.mimeType === 'application/pdf' || job.mimeType.startsWith('image/')) {
+        // Use pdf-to-printer for PDFs and images (it supports both)
         await PrinterUtils.printFile(printer.name, localFilePath, {
           copies: job.copies,
           colorMode: job.colorMode,
           duplex: job.duplex,
-          orientation: job.orientation
+          orientation: job.orientation,
+          scale: job.scale,
+          paperSize: job.paperSize
         });
       } else {
-        // For non-PDF files, use native printing
-        PrinterUtils.printNonPdfFile(printer.name, localFilePath);
+        // For other file types (ZPL, etc), use native printing
+        PrinterUtils.printNonPdfFile(printer.name, localFilePath, job.mimeType);
       }
 
       // Update status to completed

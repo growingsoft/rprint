@@ -149,6 +149,17 @@ class ApiService {
     await this.client.delete(`/jobs/${id}`);
   }
 
+  async getJobThumbnail(id: string): Promise<string | null> {
+    try {
+      const response = await this.client.get(`/jobs/${id}/thumbnail`, {
+        responseType: 'blob'
+      });
+      return URL.createObjectURL(response.data);
+    } catch {
+      return null;
+    }
+  }
+
   // API Key endpoints
   async getApiKeys(): Promise<any[]> {
     const response = await this.client.get('/api-keys');

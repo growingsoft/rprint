@@ -377,3 +377,145 @@ body {
   padding: 0.5rem 1rem;
   font-size: 0.9rem;
 }
+
+/* Recent Jobs Styles */
+.recent-jobs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.recent-jobs-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.recent-jobs-date-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #667eea;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #667eea;
+  margin-bottom: 0.25rem;
+}
+
+.recent-job-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background: #fafafa;
+  transition: all 0.2s;
+}
+
+.recent-job-item:hover {
+  border-color: #667eea;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
+}
+
+.recent-job-thumbnail {
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.recent-job-thumbnail:hover {
+  border-color: #667eea;
+  transform: scale(1.05);
+}
+
+.recent-job-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.recent-job-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.recent-job-info h4 {
+  margin: 0 0 0.25rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #2c3e50;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recent-job-time {
+  font-size: 0.85rem;
+  color: #666;
+  margin: 0 0 0.25rem 0;
+}
+
+.recent-job-printer {
+  font-size: 0.85rem;
+  color: #888;
+  margin: 0;
+}
+
+.printer-offline-badge {
+  color: #e74c3c;
+  margin-left: 0.5rem;
+  font-weight: 500;
+}
+
+.recent-job-error {
+  font-size: 0.85rem;
+  color: #e74c3c;
+  margin: 0.25rem 0 0 0;
+}
+
+.recent-job-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.recent-job-actions .btn-small {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8rem;
+}
+
+/* File Type Icon (for thumbnails) */
+.file-type-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.file-type-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.file-type-icon-large {
+  width: 80px;
+  height: 80px;
+}
+
+.recent-job-thumbnail .file-type-icon {
+  width: 48px;
+  height: 48px;
+}

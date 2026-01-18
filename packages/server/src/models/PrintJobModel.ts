@@ -9,7 +9,8 @@ export class PrintJobModel {
     filePath: string,
     fileSize: number,
     mimeType: string,
-    options: CreatePrintJobRequest
+    options: CreatePrintJobRequest,
+    thumbnailPath?: string | null
   ): Promise<PrintJob> {
     const id = uuidv4();
     const now = new Date().toISOString();
@@ -17,8 +18,8 @@ export class PrintJobModel {
     await db.run(
       `INSERT INTO print_jobs (
         id, client_id, printer_id, file_name, file_path, file_size, mime_type,
-        status, copies, color_mode, duplex, orientation, paper_size, scale, webhook_url, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        status, copies, color_mode, duplex, orientation, paper_size, scale, webhook_url, thumbnail_path, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         clientId,
@@ -35,6 +36,7 @@ export class PrintJobModel {
         options.paperSize || 'A4',
         options.scale || 'noscale',
         options.webhookUrl || null,
+        thumbnailPath || null,
         now
       ]
     );
@@ -198,6 +200,7 @@ export class PrintJobModel {
       paperSize: row.paper_size,
       scale: row.scale,
       webhookUrl: row.webhook_url,
+      thumbnailPath: row.thumbnail_path || undefined,
       createdAt: new Date(row.created_at),
       assignedAt: row.assigned_at ? new Date(row.assigned_at) : undefined,
       completedAt: row.completed_at ? new Date(row.completed_at) : undefined,

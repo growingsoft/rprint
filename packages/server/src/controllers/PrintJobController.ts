@@ -4,6 +4,7 @@ import { PrintJobModel } from '../models/PrintJobModel';
 import { PrintJobStatus, CreatePrintJobRequest, CreatePrintJobFromUrlRequest } from '../types';
 import { WebhookService } from '../services/WebhookService';
 import { WebhookEvent } from '../types';
+import { generateThumbnail, deleteThumbnail } from '../utils/thumbnails';
 import fs from 'fs';
 import path from 'path';
 import axios from 'axios';
@@ -34,13 +35,17 @@ export class PrintJobController {
         return res.status(400).json({ error: 'Printer ID is required' });
       }
 
+      // Generate thumbnail asynchronously (don't wait for it)
+      const thumbnailPath = await generateThumbnail(req.file.path, req.file.mimetype);
+
       const job = await PrintJobModel.create(
         clientId,
         req.file.originalname,
         req.file.path,
         req.file.size,
         req.file.mimetype,
-        options
+        options,
+        thumbnailPath
       );
 
       res.status(201).json({ job });
@@ -130,13 +135,17 @@ export class PrintJobController {
         webhookUrl: requestData.webhookUrl,
       };
 
+      // Generate thumbnail
+      const thumbnailPath = await generateThumbnail(tempFilePath, mimeType);
+
       const job = await PrintJobModel.create(
         clientId,
         fileName,
         tempFilePath,
         fileSize,
         mimeType,
-        options
+        options,
+        thumbnailPath
       );
 
       res.status(201).json({ job });
@@ -217,10 +226,11 @@ export class PrintJobController {
 
       await PrintJobModel.updateStatus(id, PrintJobStatus.CANCELLED);
 
-      // Clean up file
+      // Clean up file and thumbnail
       if (fs.existsSync(job.filePath)) {
         fs.unlinkSync(job.filePath);
       }
+      deleteThumbnail(job.thumbnailPath || null);
 
       res.json({ message: 'Job cancelled successfully' });
     } catch (error: any) {
@@ -316,6 +326,33 @@ export class PrintJobController {
       }
 
       res.download(job.filePath, job.fileName);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  static async getThumbnail(req: AuthRequest, res: Response) {
+    try {
+      const { id } = req.params;
+      const job = await PrintJobModel.findById(id);
+
+      if (!job) {
+        return res.status(404).json({ error: 'Print job not found' });
+      }
+
+      // Ensure client can only access their own job thumbnails
+      if (job.clientId !== req.clientId) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+
+      if (!job.thumbnailPath || !fs.existsSync(job.thumbnailPath)) {
+        return res.status(404).json({ error: 'Thumbnail not found' });
+      }
+
+      // Set cache headers for thumbnails (cache for 1 hour)
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+      res.setHeader('Content-Type', 'image/jpeg');
+      res.sendFile(path.resolve(job.thumbnailPath));
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

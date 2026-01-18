@@ -1,6 +1,13 @@
 import { execSync } from 'child_process';
+import { existsSync, unlinkSync, copyFileSync, mkdirSync } from 'fs';
+import { join, dirname } from 'path';
+import { tmpdir } from 'os';
 import { Printer } from '../types';
 import { logger } from './logger';
+
+// Debug mode - saves PDFs to debug folder for inspection
+const DEBUG_LABEL_PRINTING = true;
+const DEBUG_FOLDER = 'C:\\RPrint\\debug';
 
 // Paper size dimensions in points (72 points = 1 inch)
 // These are used for proper scaling on label printers
@@ -182,8 +189,109 @@ export class PrinterUtils {
   }
 
   /**
-   * Print a file to a label printer using SumatraPDF with explicit dimensions
-   * This ensures the label is printed correctly with proper sizing
+   * Find Ghostscript executable on Windows
+   * Returns the path to gswin64c.exe or gswin32c.exe if found
+   */
+  static findGhostscript(): string | null {
+    const possiblePaths = [
+      // Check if in PATH first
+      'gswin64c',
+      'gswin32c',
+      // Common installation paths
+      'C:\\Program Files\\gs\\gs10.04.0\\bin\\gswin64c.exe',
+      'C:\\Program Files\\gs\\gs10.03.1\\bin\\gswin64c.exe',
+      'C:\\Program Files\\gs\\gs10.03.0\\bin\\gswin64c.exe',
+      'C:\\Program Files\\gs\\gs10.02.1\\bin\\gswin64c.exe',
+      'C:\\Program Files\\gs\\gs10.02.0\\bin\\gswin64c.exe',
+      'C:\\Program Files\\gs\\gs10.01.2\\bin\\gswin64c.exe',
+      'C:\\Program Files\\gs\\gs10.01.1\\bin\\gswin64c.exe',
+      'C:\\Program Files\\gs\\gs10.00.0\\bin\\gswin64c.exe',
+      'C:\\Program Files\\gs\\gs9.56.1\\bin\\gswin64c.exe',
+      'C:\\Program Files\\gs\\gs9.55.0\\bin\\gswin64c.exe',
+      'C:\\Program Files\\gs\\gs9.54.0\\bin\\gswin64c.exe',
+      'C:\\Program Files (x86)\\gs\\gs10.02.1\\bin\\gswin32c.exe',
+      'C:\\Program Files (x86)\\gs\\gs9.56.1\\bin\\gswin32c.exe',
+    ];
+
+    for (const gsPath of possiblePaths) {
+      try {
+        execSync(`"${gsPath}" --version`, {
+          encoding: 'utf-8',
+          timeout: 5000,
+          windowsHide: true,
+          stdio: ['pipe', 'pipe', 'pipe']
+        });
+        logger.info(`Found Ghostscript at: ${gsPath}`);
+        return gsPath;
+      } catch {
+        // Not found at this path, try next
+      }
+    }
+
+    logger.warn('Ghostscript not found on system');
+    return null;
+  }
+
+  /**
+   * Resize a PDF to exact label dimensions using Ghostscript
+   * This is the key to reliable label printing - the PDF is resized BEFORE printing
+   * so the printer receives a PDF that exactly matches the label size.
+   */
+  static resizePdfForLabel(
+    inputPath: string,
+    targetWidth: number,
+    targetHeight: number
+  ): string | null {
+    const gsPath = this.findGhostscript();
+    if (!gsPath) {
+      logger.warn('Ghostscript not available - cannot resize PDF for label');
+      return null;
+    }
+
+    // Create temp output path
+    const outputPath = join(tmpdir(), `rprint-label-${Date.now()}.pdf`);
+
+    // Ghostscript command to resize PDF to exact dimensions
+    // -dFIXEDMEDIA: Force the output to use the specified media size
+    // -dPDFFitPage: Scale the input content to fit the output page
+    // -dCompatibilityLevel=1.4: Ensure broad compatibility
+    const command = `"${gsPath}" -dNOPAUSE -dBATCH -dQUIET -sDEVICE=pdfwrite ` +
+      `-dCompatibilityLevel=1.4 -dFIXEDMEDIA -dPDFFitPage ` +
+      `-dDEVICEWIDTHPOINTS=${targetWidth} -dDEVICEHEIGHTPOINTS=${targetHeight} ` +
+      `-sOutputFile="${outputPath}" "${inputPath}"`;
+
+    logger.info(`Resizing PDF to ${targetWidth}x${targetHeight} points for label printing`);
+    logger.debug(`Ghostscript command: ${command}`);
+
+    try {
+      execSync(command, {
+        encoding: 'utf-8',
+        timeout: 60000,  // 60 second timeout for large PDFs
+        windowsHide: true,
+        stdio: ['pipe', 'pipe', 'pipe']
+      });
+
+      // Verify output file was created
+      if (existsSync(outputPath)) {
+        logger.info(`PDF resized successfully: ${outputPath}`);
+        return outputPath;
+      } else {
+        logger.error('Ghostscript completed but output file not found');
+        return null;
+      }
+    } catch (error: any) {
+      logger.error(`Ghostscript resize failed: ${error.message}`);
+      return null;
+    }
+  }
+
+  /**
+   * Print a file to a label printer
+   *
+   * STRATEGY: Try multiple approaches in order of reliability:
+   * 1. Use Ghostscript to resize PDF to exact label dimensions
+   * 2. If that fails, convert PDF to image and print the image
+   * 3. If all else fails, use SumatraPDF with fit scaling
    */
   static async printLabelFile(
     printerName: string,
@@ -196,25 +304,89 @@ export class PrinterUtils {
       paperSize?: string;
     }
   ): Promise<void> {
-    try {
-      const pdfToPrinter = require('pdf-to-printer');
+    const pdfToPrinter = require('pdf-to-printer');
+    let fileToUse = filePath;
+    let tempFileCreated = false;
 
-      // Get paper dimensions
-      const paperSize = options.paperSize || '4x6';
+    try {
+      // Determine target label size - ignore non-label sizes
+      let paperSize = options.paperSize || '4x6';
+      if (!this.isLabelPaperSize(paperSize)) {
+        logger.info(`Ignoring non-label paper size "${paperSize}" for label printer, using default "4x6"`);
+        paperSize = '4x6';
+      }
       const dimensions = PAPER_SIZE_DIMENSIONS[paperSize] || PAPER_SIZE_DIMENSIONS['4x6'];
 
-      logger.info(`Label printing with dimensions: ${dimensions.width}x${dimensions.height} points (${paperSize})`);
+      logger.info(`=== LABEL PRINTING START ===`);
+      logger.info(`Printer: ${printerName}`);
+      logger.info(`Target size: ${paperSize} (${dimensions.width}x${dimensions.height} points)`);
+      logger.info(`Input file: ${filePath}`);
 
-      // Build print settings string for SumatraPDF
-      // Format: "fit,paper=<width>x<height>" where dimensions are in points
+      // DEBUG: Save original PDF for inspection
+      if (DEBUG_LABEL_PRINTING) {
+        try {
+          mkdirSync(DEBUG_FOLDER, { recursive: true });
+          const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+          const debugOriginal = join(DEBUG_FOLDER, `${timestamp}-1-ORIGINAL.pdf`);
+          copyFileSync(filePath, debugOriginal);
+          logger.info(`DEBUG: Saved original PDF to ${debugOriginal}`);
+        } catch (e) {
+          logger.warn(`DEBUG: Could not save original PDF: ${e}`);
+        }
+      }
+
+      // APPROACH 1: Try to resize PDF with Ghostscript
+      logger.info(`Attempting Ghostscript PDF resize...`);
+      const resizedPdf = this.resizePdfForLabel(filePath, dimensions.width, dimensions.height);
+
+      if (resizedPdf) {
+        fileToUse = resizedPdf;
+        tempFileCreated = true;
+        logger.info(`SUCCESS: PDF resized to ${dimensions.width}x${dimensions.height} points`);
+        logger.info(`Resized file: ${resizedPdf}`);
+
+        // DEBUG: Save resized PDF for inspection
+        if (DEBUG_LABEL_PRINTING) {
+          try {
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const debugResized = join(DEBUG_FOLDER, `${timestamp}-2-RESIZED-${paperSize}.pdf`);
+            copyFileSync(resizedPdf, debugResized);
+            logger.info(`DEBUG: Saved resized PDF to ${debugResized}`);
+            logger.info(`DEBUG: Open ${DEBUG_FOLDER} to inspect the PDFs`);
+          } catch (e) {
+            logger.warn(`DEBUG: Could not save resized PDF: ${e}`);
+          }
+        }
+      } else {
+        logger.warn(`Ghostscript resize failed - trying alternative approach`);
+
+        // APPROACH 2: Try to convert PDF to PNG and print the image
+        const pngFile = await this.convertPdfToImage(filePath, dimensions.width, dimensions.height);
+        if (pngFile) {
+          logger.info(`SUCCESS: Converted PDF to image: ${pngFile}`);
+          // Print image using mspaint (more reliable for label printers)
+          await this.printImageToLabelPrinter(printerName, pngFile, options.copies || 1);
+          // Cleanup
+          try { unlinkSync(pngFile); } catch {}
+          logger.info(`=== LABEL PRINTING COMPLETE (image method) ===`);
+          return;
+        }
+
+        logger.warn(`Image conversion also failed - using SumatraPDF fallback`);
+      }
+
+      // APPROACH 3: Print with SumatraPDF
       const printSettings: string[] = [];
 
-      // Always use fit for label printers to ensure content fits on label
-      const scaleMode = options.scale || 'fit';
-      printSettings.push(scaleMode);
-
-      // Add paper dimensions
-      printSettings.push(`paper=${dimensions.width}x${dimensions.height}`);
+      if (tempFileCreated) {
+        // PDF is already correct size - use noscale for 1:1 printing
+        printSettings.push('noscale');
+        logger.info('Using noscale (PDF already resized to label size)');
+      } else {
+        // Last resort: try fit scaling with paper dimensions
+        printSettings.push('fit');
+        logger.info('Using fit scaling (no resize was possible)');
+      }
 
       // Add copies
       const copies = options.copies || 1;
@@ -222,31 +394,119 @@ export class PrinterUtils {
         printSettings.push(`${copies}x`);
       }
 
-      // Add monochrome if requested
-      if (options.colorMode === 'grayscale') {
-        printSettings.push('monochrome');
-      }
-
       const printOptions: any = {
         printer: printerName,
         printSettings: printSettings.join(',')
       };
 
-      logger.info(`Label print options:`, printOptions);
-      logger.info(`Print settings string: ${printOptions.printSettings}`);
+      logger.info(`SumatraPDF print settings: ${printOptions.printSettings}`);
+      logger.info(`Printing file: ${fileToUse}`);
 
-      await pdfToPrinter.print(filePath, printOptions);
+      await pdfToPrinter.print(fileToUse, printOptions);
 
-      logger.info(`Label printing completed successfully`);
-      logger.info(`Printed ${filePath} on ${printerName}`);
+      logger.info(`=== LABEL PRINTING COMPLETE (PDF method) ===`);
+
     } catch (error: any) {
-      logger.error(`Error printing label file:`, {
-        error: error.message,
-        stack: error.stack,
-        printer: printerName,
-        filePath: filePath
-      });
+      logger.error(`=== LABEL PRINTING FAILED ===`);
+      logger.error(`Error: ${error.message}`);
+      logger.error(`Stack: ${error.stack}`);
       throw error;
+    } finally {
+      // Cleanup temporary files
+      if (tempFileCreated && fileToUse !== filePath) {
+        try {
+          unlinkSync(fileToUse);
+          logger.debug(`Cleaned up temp file: ${fileToUse}`);
+        } catch (cleanupError) {
+          // Ignore cleanup errors
+        }
+      }
+    }
+  }
+
+  /**
+   * Convert PDF to PNG image at specific dimensions using Ghostscript
+   * This is a fallback for when PDF resizing doesn't work
+   */
+  static async convertPdfToImage(
+    pdfPath: string,
+    targetWidth: number,
+    targetHeight: number
+  ): Promise<string | null> {
+    const gsPath = this.findGhostscript();
+    if (!gsPath) {
+      return null;
+    }
+
+    const outputPath = join(tmpdir(), `rprint-label-${Date.now()}.png`);
+
+    // Calculate DPI to achieve target dimensions
+    // Ghostscript renders at specified DPI, so we need to calculate what DPI gives us target size
+    // For a 4x6 inch label at 203 DPI (common for Zebra): 812x1218 pixels
+    // We'll use 203 DPI which is standard for Zebra printers
+    const dpi = 203;
+
+    const command = `"${gsPath}" -dNOPAUSE -dBATCH -dQUIET -sDEVICE=png16m ` +
+      `-r${dpi} -dPDFFitPage ` +
+      `-dDEVICEWIDTHPOINTS=${targetWidth} -dDEVICEHEIGHTPOINTS=${targetHeight} ` +
+      `-sOutputFile="${outputPath}" -dFirstPage=1 -dLastPage=1 "${pdfPath}"`;
+
+    logger.info(`Converting PDF to PNG at ${dpi} DPI...`);
+    logger.debug(`Command: ${command}`);
+
+    try {
+      execSync(command, {
+        encoding: 'utf-8',
+        timeout: 60000,
+        windowsHide: true,
+        stdio: ['pipe', 'pipe', 'pipe']
+      });
+
+      if (existsSync(outputPath)) {
+        logger.info(`PDF converted to PNG: ${outputPath}`);
+        return outputPath;
+      }
+      return null;
+    } catch (error: any) {
+      logger.error(`PDF to PNG conversion failed: ${error.message}`);
+      return null;
+    }
+  }
+
+  /**
+   * Print an image file to a label printer using Windows native printing
+   * This is often more reliable than PDF printing for thermal printers
+   */
+  static async printImageToLabelPrinter(
+    printerName: string,
+    imagePath: string,
+    copies: number = 1
+  ): Promise<void> {
+    logger.info(`Printing image to label printer: ${printerName}`);
+
+    // Use mspaint for printing - it handles thermal printers well
+    // /pt = print to specific printer
+    for (let i = 0; i < copies; i++) {
+      const command = `mspaint /pt "${imagePath}" "${printerName}"`;
+      logger.debug(`Print command: ${command}`);
+
+      try {
+        execSync(command, {
+          encoding: 'utf-8',
+          timeout: 30000,
+          windowsHide: true,
+          stdio: ['pipe', 'pipe', 'pipe']
+        });
+        logger.info(`Image print ${i + 1}/${copies} sent successfully`);
+      } catch (error: any) {
+        logger.error(`Image print failed: ${error.message}`);
+        throw error;
+      }
+
+      // Small delay between copies
+      if (i < copies - 1) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
     }
   }
 

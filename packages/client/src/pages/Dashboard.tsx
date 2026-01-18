@@ -2,7 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { useStore } from '../store/useStore';
-import { PrintOptions, PrintJobStatus } from '../types';
+import { useRecentJobs, RecentJobWithPreview } from '../store/useRecentJobs';
+import { PrintOptions, PrintJobStatus, PrintJob } from '../types';
+import { PreviewModal, FileTypeIcon } from '../components/PreviewModal';
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -19,10 +21,12 @@ export const Dashboard: React.FC = () => {
     reset
   } = useStore();
 
+  const { recentJobs, addRecentJob, updateJobStatus, syncWithServerJobs } = useRecentJobs();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewJob, setPreviewJob] = useState<RecentJobWithPreview | null>(null);
   const [printOptions, setPrintOptions] = useState<PrintOptions>({
     printerId: '',
     copies: 1,
@@ -87,6 +91,8 @@ export const Dashboard: React.FC = () => {
     try {
       const jobs = await api.getPrintJobs(undefined, 20);
       setPrintJobs(jobs);
+      // Sync with recent jobs store to show thumbnails
+      await syncWithServerJobs(jobs);
     } catch (err: any) {
       console.error('Error loading jobs:', err);
     }
@@ -152,8 +158,10 @@ export const Dashboard: React.FC = () => {
     setSuccess('');
 
     try {
+      const fileToStore = selectedFile;
       const job = await api.createPrintJob(selectedFile, printOptions);
       addPrintJob(job);
+      addRecentJob(job, fileToStore);
       setSuccess('Print job created successfully!');
       setSelectedFile(null);
       setTimeout(() => setSuccess(''), 3000);
@@ -275,6 +283,7 @@ startxref
 
       const job = await api.createPrintJob(file, printOptions);
       addPrintJob(job);
+      addRecentJob(job, file);
       setSuccess('Test page sent to printer!');
       setTimeout(() => setSuccess(''), 3000);
     } catch (err: any) {
@@ -476,40 +485,140 @@ startxref
 
         <div className="card">
           <h2 className="card-title">Recent Print Jobs</h2>
-          {printJobs.length === 0 ? (
-            <p>No print jobs yet</p>
+          <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: '1rem' }}>
+            Showing up to 20 most recent jobs with preview
+          </p>
+          {recentJobs.length === 0 ? (
+            <p>No recent print jobs</p>
           ) : (
-            <div className="job-list">
-              {printJobs.map(job => (
-                <div key={job.id} className="job-item">
-                  <div className="job-info">
-                    <h4>{job.fileName}</h4>
-                    <p>{new Date(job.createdAt).toLocaleString()}</p>
-                    {job.printerName && (
-                      <p style={{ fontSize: '0.9rem', color: '#666' }}>
-                        🖨️ {job.printerName}
-                        {job.printerStatus === 'offline' && <span style={{ color: '#e74c3c', marginLeft: '0.5rem' }}>(Offline)</span>}
-                      </p>
-                    )}
-                    {job.errorMessage && <p style={{ color: '#e74c3c' }}>{job.errorMessage}</p>}
-                  </div>
-                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                    <span className={`job-status ${job.status}`}>{job.status}</span>
-                    {job.status === PrintJobStatus.PENDING && (
-                      <button
-                        className="btn btn-danger"
-                        onClick={() => handleCancelJob(job.id)}
-                      >
-                        Cancel
-                      </button>
-                    )}
-                  </div>
+            <div className="recent-jobs-list">
+              {groupJobsByDate(recentJobs).map(({ label, jobs }) => (
+                <div key={label} className="recent-jobs-group">
+                  <div className="recent-jobs-date-label">{label}</div>
+                  {jobs.map(item => (
+                    <RecentJobItem
+                      key={item.job.id}
+                      item={item}
+                      onPreview={() => setPreviewJob(item)}
+                      onCancel={() => handleCancelJob(item.job.id)}
+                    />
+                  ))}
                 </div>
               ))}
             </div>
           )}
         </div>
       </div>
+
+      {previewJob && (
+        <PreviewModal
+          jobWithPreview={previewJob}
+          onClose={() => setPreviewJob(null)}
+        />
+      )}
     </div>
   );
 };
+
+// Helper component for rendering a recent job item
+interface RecentJobItemProps {
+  item: RecentJobWithPreview;
+  onPreview: () => void;
+  onCancel: () => void;
+}
+
+const RecentJobItem: React.FC<RecentJobItemProps> = ({ item, onPreview, onCancel }) => {
+  const { job, thumbnailUrl, mimeType } = item;
+
+  return (
+    <div className="recent-job-item">
+      <div className="recent-job-thumbnail" onClick={onPreview}>
+        {thumbnailUrl ? (
+          <img src={thumbnailUrl} alt={job.fileName} />
+        ) : (
+          <FileTypeIcon mimeType={mimeType} />
+        )}
+      </div>
+      <div className="recent-job-info">
+        <h4>{job.fileName}</h4>
+        <p className="recent-job-time">{formatTime(job.createdAt)}</p>
+        {job.printerName && (
+          <p className="recent-job-printer">
+            {job.printerName}
+            {job.printerStatus === 'offline' && (
+              <span className="printer-offline-badge">(Offline)</span>
+            )}
+          </p>
+        )}
+        {job.errorMessage && (
+          <p className="recent-job-error">{job.errorMessage}</p>
+        )}
+      </div>
+      <div className="recent-job-actions">
+        <span className={`job-status ${job.status}`}>{job.status}</span>
+        <button
+          className="btn btn-secondary btn-small"
+          onClick={onPreview}
+          title="Preview"
+        >
+          Preview
+        </button>
+        {job.status === PrintJobStatus.PENDING && (
+          <button
+            className="btn btn-danger btn-small"
+            onClick={onCancel}
+          >
+            Cancel
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Helper function to format date labels
+function getDateLabel(dateStr: string): string {
+  const date = new Date(dateStr);
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  // Reset time parts for comparison
+  const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const yesterdayOnly = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+
+  if (dateOnly.getTime() === todayOnly.getTime()) {
+    return 'Today';
+  }
+  if (dateOnly.getTime() === yesterdayOnly.getTime()) {
+    return 'Yesterday';
+  }
+  return date.toLocaleDateString(undefined, {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+}
+
+// Helper function to format time
+function formatTime(dateStr: string): string {
+  return new Date(dateStr).toLocaleTimeString(undefined, {
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
+// Group jobs by date
+function groupJobsByDate(jobs: RecentJobWithPreview[]): { label: string; jobs: RecentJobWithPreview[] }[] {
+  const groups: Map<string, RecentJobWithPreview[]> = new Map();
+
+  jobs.forEach(item => {
+    const label = getDateLabel(item.job.createdAt);
+    const existing = groups.get(label) || [];
+    groups.set(label, [...existing, item]);
+  });
+
+  return Array.from(groups.entries()).map(([label, jobs]) => ({ label, jobs }));
+}

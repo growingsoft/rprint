@@ -14,6 +14,7 @@ export interface PrintJob {
   paperSize: string;
   scale?: 'fit' | 'noscale' | 'shrink';
   webhookUrl?: string;
+  thumbnailPath?: string;
   createdAt: Date;
   assignedAt?: Date;
   completedAt?: Date;

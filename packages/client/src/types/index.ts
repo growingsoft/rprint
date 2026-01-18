@@ -12,6 +12,7 @@ export interface PrintJob {
   orientation: 'portrait' | 'landscape';
   paperSize: string;
   scale?: 'fit' | 'noscale' | 'shrink';
+  thumbnailPath?: string;
   createdAt: string;
   assignedAt?: string;
   completedAt?: string;

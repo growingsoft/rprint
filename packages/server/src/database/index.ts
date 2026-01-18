@@ -47,7 +47,8 @@ export class Database {
       `ALTER TABLE print_jobs ADD COLUMN margin_top INTEGER DEFAULT 10`,
       `ALTER TABLE print_jobs ADD COLUMN margin_bottom INTEGER DEFAULT 10`,
       `ALTER TABLE print_jobs ADD COLUMN margin_left INTEGER DEFAULT 10`,
-      `ALTER TABLE print_jobs ADD COLUMN margin_right INTEGER DEFAULT 10`
+      `ALTER TABLE print_jobs ADD COLUMN margin_right INTEGER DEFAULT 10`,
+      `ALTER TABLE print_jobs ADD COLUMN thumbnail_path TEXT`
     ];
 
     for (const migration of migrations) {
