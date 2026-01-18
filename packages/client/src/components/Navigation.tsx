@@ -173,10 +173,10 @@ export const Navigation: React.FC<NavigationProps> = ({
               </NavLink>
             </li>
             <li className="nav-item">
-              <a href="/apidoc" className="nav-link" target="_blank" rel="noopener noreferrer">
+              <NavLink to="/api-docs" className="nav-link">
                 <DocsIcon />
                 <span className="nav-text">API Docs</span>
-              </a>
+              </NavLink>
             </li>
           </>
         )}

@@ -11,6 +11,7 @@ import { ClientDownload } from './pages/ClientDownload';
 import { AdminPrinters } from './pages/AdminPrinters';
 import { ApiKeys } from './pages/ApiKeys';
 import { ApiToken } from './pages/ApiToken';
+import { ApiDocs } from './pages/ApiDocs';
 import { Workers } from './pages/Workers';
 import { Layout } from './components/Layout';
 import { api } from './services/api';
@@ -92,6 +93,14 @@ function App() {
           element={
             <ProtectedRoute>
               <ApiToken />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/api-docs"
+          element={
+            <ProtectedRoute>
+              <ApiDocs />
             </ProtectedRoute>
           }
         />

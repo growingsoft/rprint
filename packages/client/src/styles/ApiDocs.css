@@ -1,0 +1,139 @@
+.api-docs-page {
+  padding: 0;
+  max-width: 100%;
+  min-height: 100vh;
+  background: #fafafa;
+}
+
+.api-docs-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 30px 40px;
+  margin: -30px -30px 0 -30px;
+}
+
+.api-docs-header h1 {
+  margin: 0 0 10px 0;
+  font-size: 28px;
+  font-weight: 600;
+}
+
+.api-docs-header p {
+  margin: 0;
+  font-size: 16px;
+  opacity: 0.9;
+}
+
+.api-docs-quicklinks {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 15px 40px;
+  background: #f0f0f0;
+  border-bottom: 1px solid #e0e0e0;
+  margin: 0 -30px 20px -30px;
+}
+
+.api-docs-quicklinks button,
+.api-docs-quicklinks a {
+  background: white;
+  border: 1px solid #ddd;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #667eea;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.api-docs-quicklinks button:hover,
+.api-docs-quicklinks a:hover {
+  background: #667eea;
+  color: white;
+  border-color: #667eea;
+}
+
+.api-docs-quicklinks .download-link {
+  background: #28a745;
+  color: white;
+  border-color: #28a745;
+}
+
+.api-docs-quicklinks .download-link:hover {
+  background: #218838;
+  border-color: #218838;
+}
+
+.swagger-container {
+  padding: 0 10px;
+}
+
+/* Override Swagger UI styles to fit better */
+.swagger-ui .topbar {
+  display: none;
+}
+
+.swagger-ui .info {
+  margin: 20px 0;
+}
+
+.swagger-ui .info .title {
+  font-size: 24px;
+}
+
+.swagger-ui .scheme-container {
+  background: #f7f7f7;
+  padding: 15px;
+  border-radius: 8px;
+}
+
+.swagger-ui .opblock-tag {
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.swagger-ui .opblock {
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  margin-bottom: 10px;
+}
+
+.swagger-ui .opblock .opblock-summary {
+  border-radius: 8px;
+}
+
+.swagger-ui .btn {
+  border-radius: 6px;
+}
+
+.swagger-ui select {
+  border-radius: 6px;
+}
+
+.swagger-ui input[type=text],
+.swagger-ui textarea {
+  border-radius: 6px;
+}
+
+/* Make it responsive */
+@media (max-width: 768px) {
+  .api-docs-header {
+    padding: 20px;
+    margin: -20px -20px 0 -20px;
+  }
+
+  .api-docs-header h1 {
+    font-size: 22px;
+  }
+
+  .api-docs-quicklinks {
+    padding: 10px 20px;
+    margin: 0 -20px 15px -20px;
+  }
+
+  .api-docs-quicklinks button,
+  .api-docs-quicklinks a {
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+}
