@@ -299,12 +299,8 @@ export class PrintJobController {
         }
       }
 
-      // Clean up file if job is completed or failed
-      if (status === PrintJobStatus.COMPLETED || status === PrintJobStatus.FAILED) {
-        if (fs.existsSync(job.filePath)) {
-          fs.unlinkSync(job.filePath);
-        }
-      }
+      // Clean up old files, keeping only the last 20 jobs' files per client
+      PrintJobController.cleanupOldFiles(job.clientId);
 
       res.json({ message: 'Job status updated successfully' });
     } catch (error: any) {
@@ -372,9 +368,9 @@ export class PrintJobController {
         return res.status(403).json({ error: 'Access denied' });
       }
 
-      // Check if file still exists (it's deleted after completion/failure)
+      // Check if file still exists
       if (!fs.existsSync(job.filePath)) {
-        return res.status(404).json({ error: 'File no longer available (job completed or failed)' });
+        return res.status(404).json({ error: 'File no longer available' });
       }
 
       // Set appropriate content type
@@ -383,6 +379,37 @@ export class PrintJobController {
       res.sendFile(path.resolve(job.filePath));
     } catch (error: any) {
       res.status(500).json({ error: error.message });
+    }
+  }
+
+  // Clean up old files, keeping only the last N jobs' files per client
+  private static async cleanupOldFiles(clientId: string, keepCount: number = 20) {
+    try {
+      // Get all jobs for this client, ordered by creation date
+      const jobs = await PrintJobModel.findAllWithPrinter({
+        clientId,
+        limit: 1000 // Get all jobs
+      });
+
+      // Jobs are already sorted by createdAt DESC, so skip the first keepCount
+      const jobsToCleanup = jobs.slice(keepCount);
+
+      for (const job of jobsToCleanup) {
+        // Delete file if it exists
+        if (job.filePath && fs.existsSync(job.filePath)) {
+          try {
+            fs.unlinkSync(job.filePath);
+          } catch (e) {
+            console.error(`Failed to delete file ${job.filePath}:`, e);
+          }
+        }
+        // Delete thumbnail if it exists
+        if (job.thumbnailPath) {
+          deleteThumbnail(job.thumbnailPath);
+        }
+      }
+    } catch (error) {
+      console.error('Error cleaning up old files:', error);
     }
   }
 }
