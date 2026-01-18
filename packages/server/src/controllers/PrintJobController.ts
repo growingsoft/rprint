@@ -373,9 +373,11 @@ export class PrintJobController {
         return res.status(404).json({ error: 'File no longer available' });
       }
 
-      // Set appropriate content type
+      // Set appropriate content type and allow embedding
       res.setHeader('Content-Type', job.mimeType);
       res.setHeader('Content-Disposition', `inline; filename="${job.fileName}"`);
+      res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+      res.setHeader('Content-Security-Policy', "frame-ancestors 'self'");
       res.sendFile(path.resolve(job.filePath));
     } catch (error: any) {
       res.status(500).json({ error: error.message });
