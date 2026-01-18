@@ -74,6 +74,23 @@ const CopiesIcon = () => (
   </svg>
 );
 
+const ReprintIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <polyline points="1 4 1 10 7 10" />
+    <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+  </svg>
+);
+
 // --- Interfaces ---
 interface Printer {
   id: string;
@@ -111,6 +128,7 @@ export const Print: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
   const [previewJob, setPreviewJob] = useState<RecentJobWithPreview | null>(null);
+  const [reprintingJobId, setReprintingJobId] = useState<string | null>(null);
 
   const { recentJobs, addRecentJob, syncWithServerJobs } = useRecentJobs();
 
@@ -218,6 +236,56 @@ export const Print: React.FC = () => {
   };
 
   const getStatusBadge = (status: string) => `status-${status}`;
+
+  const handleReprint = async (recentJob: RecentJobWithPreview, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent opening preview modal
+
+    const job = recentJob.job;
+    setReprintingJobId(job.id);
+    setError('');
+
+    try {
+      // Get the file - either from local blob or fetch from server
+      let file: File;
+
+      if (recentJob.fileBlob) {
+        file = new File([recentJob.fileBlob], job.fileName, { type: recentJob.mimeType });
+      } else {
+        // Fetch from server
+        const blob = await api.getJobFilePreview(job.id);
+        if (!blob) {
+          setError('File no longer available for reprinting');
+          setReprintingJobId(null);
+          return;
+        }
+        file = new File([blob], job.fileName, { type: recentJob.mimeType });
+      }
+
+      // Create new print job with same settings
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('printerId', job.printerId);
+      formData.append('copies', job.copies.toString());
+      formData.append('paperSize', job.paperSize || 'A4');
+      formData.append('orientation', job.orientation || 'portrait');
+      formData.append('colorMode', job.colorMode || 'color');
+      formData.append('duplex', job.duplex || 'none');
+      formData.append('scale', job.scale || 'noscale');
+
+      const response = await api.post('/jobs', formData);
+      const newJob = response.data;
+
+      // Add to recent jobs
+      addRecentJob(newJob, file);
+
+      // Reload jobs list
+      loadJobs();
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Failed to reprint job');
+    } finally {
+      setReprintingJobId(null);
+    }
+  };
 
   return (
     <div className="print-page">
@@ -419,6 +487,21 @@ export const Print: React.FC = () => {
                         <div className="job-error">{job.errorMessage}</div>
                       )}
                     </div>
+                    <button
+                      className="btn-reprint"
+                      onClick={(e) => handleReprint(recentJob, e)}
+                      disabled={reprintingJobId === job.id}
+                      title="Print Again"
+                    >
+                      {reprintingJobId === job.id ? (
+                        <span className="reprint-loading">...</span>
+                      ) : (
+                        <>
+                          <ReprintIcon />
+                          <span>Print Again</span>
+                        </>
+                      )}
+                    </button>
                   </div>
                 );
               })

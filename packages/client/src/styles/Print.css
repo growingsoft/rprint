@@ -351,6 +351,45 @@
   gap: 1rem;
 }
 
+/* Reprint button */
+.btn-reprint {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.75rem;
+  background: #f8f9fa;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--primary-color);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.btn-reprint:hover:not(:disabled) {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.btn-reprint:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-reprint svg {
+  width: 16px;
+  height: 16px;
+}
+
+.reprint-loading {
+  font-size: 1rem;
+  letter-spacing: 2px;
+}
+
 @media (max-width: 768px) {
   .job-thumbnail {
     width: 50px;
@@ -364,5 +403,13 @@
   .job-content .job-details {
     flex-direction: column;
     gap: 0.3rem;
+  }
+
+  .btn-reprint span:last-child {
+    display: none;
+  }
+
+  .btn-reprint {
+    padding: 0.5rem;
   }
 }
