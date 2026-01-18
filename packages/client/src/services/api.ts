@@ -160,6 +160,17 @@ class ApiService {
     }
   }
 
+  async getJobFilePreview(id: string): Promise<Blob | null> {
+    try {
+      const response = await this.client.get(`/jobs/${id}/preview`, {
+        responseType: 'blob'
+      });
+      return response.data;
+    } catch {
+      return null;
+    }
+  }
+
   // API Key endpoints
   async getApiKeys(): Promise<any[]> {
     const response = await this.client.get('/api-keys');

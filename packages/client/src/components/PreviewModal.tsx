@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { RecentJobWithPreview } from '../store/useRecentJobs';
+import { api } from '../services/api';
 import './PreviewModal.css';
 
 interface PreviewModalProps {
@@ -9,15 +10,58 @@ interface PreviewModalProps {
 
 export const PreviewModal: React.FC<PreviewModalProps> = ({ jobWithPreview, onClose }) => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [loadedBlob, setLoadedBlob] = useState<Blob | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { job, fileBlob, mimeType } = jobWithPreview;
 
   useEffect(() => {
-    if (fileBlob) {
-      const url = URL.createObjectURL(fileBlob);
-      setPreviewUrl(url);
-      return () => URL.revokeObjectURL(url);
-    }
-  }, [fileBlob]);
+    let mounted = true;
+
+    const loadPreview = async () => {
+      // If we have a local blob, use it
+      if (fileBlob) {
+        const url = URL.createObjectURL(fileBlob);
+        if (mounted) {
+          setPreviewUrl(url);
+          setLoadedBlob(fileBlob);
+        }
+        return () => URL.revokeObjectURL(url);
+      }
+
+      // Otherwise, try to fetch from server
+      setLoading(true);
+      setError(null);
+
+      try {
+        const blob = await api.getJobFilePreview(job.id);
+        if (blob && mounted) {
+          const url = URL.createObjectURL(blob);
+          setPreviewUrl(url);
+          setLoadedBlob(blob);
+        } else if (mounted) {
+          setError('File no longer available');
+        }
+      } catch (err) {
+        if (mounted) {
+          setError('Failed to load preview');
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadPreview();
+
+    return () => {
+      mounted = false;
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [fileBlob, job.id]);
 
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
@@ -26,7 +70,26 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({ jobWithPreview, onCl
   };
 
   const renderPreview = () => {
-    if (!fileBlob || !previewUrl) {
+    if (loading) {
+      return (
+        <div className="preview-unavailable">
+          <div className="preview-loading-spinner"></div>
+          <p>Loading preview...</p>
+        </div>
+      );
+    }
+
+    if (error) {
+      return (
+        <div className="preview-unavailable">
+          <FileTypeIcon mimeType={mimeType} large />
+          <p>Preview not available</p>
+          <p className="preview-unavailable-hint">{error}</p>
+        </div>
+      );
+    }
+
+    if (!loadedBlob || !previewUrl) {
       return (
         <div className="preview-unavailable">
           <FileTypeIcon mimeType={mimeType} large />
@@ -51,7 +114,7 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({ jobWithPreview, onCl
     }
 
     if (mimeType === 'text/plain') {
-      return <TextPreview blob={fileBlob} />;
+      return <TextPreview blob={loadedBlob} />;
     }
 
     return (

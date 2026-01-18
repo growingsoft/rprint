@@ -357,4 +357,32 @@ export class PrintJobController {
       res.status(500).json({ error: error.message });
     }
   }
+
+  static async getFilePreview(req: AuthRequest, res: Response) {
+    try {
+      const { id } = req.params;
+      const job = await PrintJobModel.findById(id);
+
+      if (!job) {
+        return res.status(404).json({ error: 'Print job not found' });
+      }
+
+      // Ensure client can only access their own job files
+      if (job.clientId !== req.clientId) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+
+      // Check if file still exists (it's deleted after completion/failure)
+      if (!fs.existsSync(job.filePath)) {
+        return res.status(404).json({ error: 'File no longer available (job completed or failed)' });
+      }
+
+      // Set appropriate content type
+      res.setHeader('Content-Type', job.mimeType);
+      res.setHeader('Content-Disposition', `inline; filename="${job.fileName}"`);
+      res.sendFile(path.resolve(job.filePath));
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
 }

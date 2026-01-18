@@ -11,6 +11,7 @@ router.post('/print-url', authenticateClient, PrintJobController.createFromUrl);
 router.get('/', authenticateClient, PrintJobController.list);
 router.get('/:id', authenticateClient, PrintJobController.get);
 router.get('/:id/thumbnail', authenticateClient, PrintJobController.getThumbnail);
+router.get('/:id/preview', authenticateClient, PrintJobController.getFilePreview);
 router.delete('/:id', authenticateClient, PrintJobController.cancel);
 
 // Worker routes
