@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
+import { useRecentJobs, RecentJobWithPreview } from '../store/useRecentJobs';
+import { PreviewModal, FileTypeIcon } from '../components/PreviewModal';
 import '../styles/Print.css';
 
 // --- Icon Components ---
@@ -108,6 +110,9 @@ export const Print: React.FC = () => {
   const [copies, setCopies] = useState<number>(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
+  const [previewJob, setPreviewJob] = useState<RecentJobWithPreview | null>(null);
+
+  const { recentJobs, addRecentJob, syncWithServerJobs } = useRecentJobs();
 
   // Print options
   const [paperSize, setPaperSize] = useState<string>('4x6');
@@ -156,7 +161,9 @@ export const Print: React.FC = () => {
   const loadJobs = async () => {
     try {
       const response = await api.get('/jobs');
-      setJobs((response.data.jobs || []).slice(0, 20));
+      const jobsList = (response.data.jobs || []).slice(0, 20);
+      setJobs(jobsList);
+      await syncWithServerJobs(jobsList);
     } catch (err) {
       console.error('Failed to load jobs:', err);
     }
@@ -188,7 +195,12 @@ export const Print: React.FC = () => {
       formData.append('duplex', duplex);
       formData.append('scale', scale);
 
-      await api.post('/jobs', formData);
+      const fileToStore = selectedFile;
+      const response = await api.post('/jobs', formData);
+      const job = response.data;
+
+      // Add to recent jobs with file for preview
+      addRecentJob(job, fileToStore);
 
       setSelectedFile(null);
       setCopies(1);
@@ -366,40 +378,61 @@ export const Print: React.FC = () => {
         <section className="print-jobs-card">
           <h2>Recent Jobs</h2>
           <div className="jobs-list">
-            {jobs.length === 0 ? (
+            {recentJobs.length === 0 ? (
               <div className="no-jobs">No print jobs found.</div>
             ) : (
-              jobs.map((job) => (
-                <div key={job.id} className="job-item">
-                  <div className="job-header">
-                    <span className="job-filename">
-                      <FileIcon /> {job.fileName}
-                    </span>
-                    <span className={`job-status ${getStatusBadge(job.status)}`}>
-                      {job.status}
-                    </span>
+              recentJobs.map((recentJob) => {
+                const job = recentJob.job;
+                return (
+                  <div
+                    key={job.id}
+                    className="job-item job-item-clickable"
+                    onClick={() => setPreviewJob(recentJob)}
+                  >
+                    <div className="job-thumbnail">
+                      {recentJob.thumbnailUrl ? (
+                        <img src={recentJob.thumbnailUrl} alt={job.fileName} />
+                      ) : (
+                        <FileTypeIcon mimeType={recentJob.mimeType || 'application/octet-stream'} />
+                      )}
+                    </div>
+                    <div className="job-content">
+                      <div className="job-header">
+                        <span className="job-filename">{job.fileName}</span>
+                        <span className={`job-status ${getStatusBadge(job.status)}`}>
+                          {job.status}
+                        </span>
+                      </div>
+                      <div className="job-details">
+                        <span>
+                          <PrinterIcon /> {job.printer_name || 'N/A'}
+                        </span>
+                        <span>
+                          <CopiesIcon /> {job.copies}
+                        </span>
+                        <span>
+                          <ClockIcon />{' '}
+                          {new Date(job.createdAt).toLocaleString()}
+                        </span>
+                      </div>
+                      {job.errorMessage && (
+                        <div className="job-error">{job.errorMessage}</div>
+                      )}
+                    </div>
                   </div>
-                  <div className="job-details">
-                    <span>
-                      <PrinterIcon /> {job.printer_name || 'N/A'}
-                    </span>
-                    <span>
-                      <CopiesIcon /> {job.copies}
-                    </span>
-                    <span>
-                      <ClockIcon />{' '}
-                      {new Date(job.createdAt).toLocaleString()}
-                    </span>
-                  </div>
-                  {job.errorMessage && (
-                    <div className="job-error">{job.errorMessage}</div>
-                  )}
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </section>
       </main>
+
+      {previewJob && (
+        <PreviewModal
+          jobWithPreview={previewJob}
+          onClose={() => setPreviewJob(null)}
+        />
+      )}
     </div>
   );
 };

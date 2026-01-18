@@ -295,3 +295,74 @@
   color: #3498db;
   border-color: #3498db;
 }
+
+/* Job item with thumbnail */
+.job-item-clickable {
+  cursor: pointer;
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.job-thumbnail {
+  width: 60px;
+  height: 60px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f5f5f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-color);
+}
+
+.job-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.job-thumbnail .file-type-icon {
+  width: 32px;
+  height: 32px;
+}
+
+.job-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.job-content .job-header {
+  margin-bottom: 0.5rem;
+}
+
+.job-content .job-filename {
+  font-size: 1rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 300px;
+  display: inline-block;
+}
+
+.job-content .job-details {
+  font-size: 0.85rem;
+  gap: 1rem;
+}
+
+@media (max-width: 768px) {
+  .job-thumbnail {
+    width: 50px;
+    height: 50px;
+  }
+
+  .job-content .job-filename {
+    max-width: 150px;
+  }
+
+  .job-content .job-details {
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+}
